@@ -30,8 +30,8 @@ class HabitRPG(object):
         return self._api_request('GET', 'status', auth=False)['status']
 
     def tasks(self):
-        return map(Task.new_from_api_response,
-                   self._api_request('GET', 'user/tasks'))
+        return list(map(Task.new_from_api_response,
+                        self._api_request('GET', 'user/tasks')))
 
     def create_task(self, task_type, text=None):
         data = {'type': task_type}
