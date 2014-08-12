@@ -14,8 +14,10 @@ if __name__ == '__main__':
     hrpg = habitrpg.HabitRPG(user_id, api_token)
     tasks = hrpg.tasks()
 
-    if (sum(1 for task in tasks if isinstance(task, habitrpg.Todo) and
-                not task.completed) > 20 and
-            next((task for task in tasks if task.text == TASK_NAME), None)
-                is None):
+    incomplete_todos = sum(1 for task in tasks if
+            isinstance(task, habitrpg.Todo) and not task.completed)
+    reduce_task = next((task for task in tasks if task.text == TASK_NAME),
+                       None)
+
+    if incomplete_todos > 20 and reduce_task is not None:
         hrpg.create_task('todo', TASK_NAME)
