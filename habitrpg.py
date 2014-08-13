@@ -1,10 +1,18 @@
 import json
 import os.path
+import datetime
 
 import requests
 
 API_BASE_URI = 'https://habitrpg.com/api/v2'
 DEFAULT_LOGIN_FILE = os.path.expanduser('~/.habitrpg')
+
+def parse_timestamp(string):
+    if string is None:
+        return None
+    else:
+        return (datetime.datetime.strptime(string, '%Y-%m-%dT%H:%M:%S.%fZ')
+                    .replace(tzinfo=datetime.timezone.utc))
 
 class HabitRPG(object):
     def __init__(self, user_id, api_token):
@@ -107,7 +115,7 @@ class Habit(Task):
                    tags=api_response.get('tags'),  # TODO Parse this
                    value=api_response['value'],
                    priority=api_response['priority'],
-                   date_created=api_response['dateCreated'], # TODO Parse this
+                   date_created=parse_timestamp(api_response['dateCreated']),
                    attribute=api_response['attribute'],
                    challenge=api_response.get('challenge'))  # TODO Parse this
 
@@ -142,7 +150,7 @@ class Daily(Task):
                    tags=api_response.get('tags'),  # TODO Parse this
                    value=api_response['value'],
                    priority=api_response['priority'],
-                   date_created=api_response['dateCreated'], # TODO Parse this
+                   date_created=parse_timestamp(api_response['dateCreated']),
                    attribute=api_response['attribute'],
                    challenge=api_response.get('challenge'))  # TODO Parse this
 
@@ -162,20 +170,21 @@ class Todo(Task):
 
     @classmethod
     def new_from_api_response(cls, api_response):
-        return cls(completed=api_response['completed'],
-                   due_date=api_response.get('date'),  # TODO Parse this
-                   date_completed=api_response.get('dateCompleted'),  # TODO Parse this
-                   checklist=api_response.get('checklist'),  # TODO Parse this
-                   collapse_checklist=api_response.get('collapseChecklist'),
-                   id_code=api_response['id'],
-                   text=api_response['text'],
-                   notes=api_response['notes'],
-                   tags=api_response.get('tags'),  # TODO Parse this
-                   value=api_response['value'],
-                   priority=api_response['priority'],
-                   date_created=api_response['dateCreated'], # TODO Parse this
-                   attribute=api_response['attribute'],
-                   challenge=api_response.get('challenge'))  # TODO Parse this
+        return cls(
+            completed=api_response['completed'],
+            due_date=parse_timestamp(api_response.get('date')),
+            date_completed=parse_timestamp(api_response.get('dateCompleted')),
+            checklist=api_response.get('checklist'),  # TODO Parse this
+            collapse_checklist=api_response.get('collapseChecklist'),
+            id_code=api_response['id'],
+            text=api_response['text'],
+            notes=api_response['notes'],
+            tags=api_response.get('tags'),  # TODO Parse this
+            value=api_response['value'],
+            priority=api_response['priority'],
+            date_created=parse_timestamp(api_response['dateCreated']),
+            attribute=api_response['attribute'],
+            challenge=api_response.get('challenge'))  # TODO Parse this
 
 class Reward(Task):
     @classmethod
@@ -186,6 +195,6 @@ class Reward(Task):
                    tags=api_response.get('tags'),  # TODO Parse this
                    value=api_response['value'],
                    priority=api_response['priority'],
-                   date_created=api_response['dateCreated'], # TODO Parse this
+                   date_created=parse_timestamp(api_response['dateCreated']),
                    attribute=api_response['attribute'],
                    challenge=api_response.get('challenge'))  # TODO Parse this
