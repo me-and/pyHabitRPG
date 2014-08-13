@@ -7,7 +7,7 @@ API_BASE_URI = 'https://habitrpg.com/api/v2'
 DEFAULT_LOGIN_FILE = os.path.expanduser('~/.habitrpg')
 
 class HabitRPG(object):
-    def __init__(self, user_id=None, api_token=None):
+    def __init__(self, user_id, api_token):
         self.user_id = user_id
         self.api_token = api_token
 
