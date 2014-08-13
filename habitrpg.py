@@ -18,35 +18,42 @@ class HabitRPG(object):
             api_token = login_file.readline().strip()
         return cls(user_id, api_token)
 
-    def _api_request(self, method, path, body=None, auth=True):
-        if auth:
-            headers = headers={'x-api-user': self.user_id,
-                               'x-api-key': self.api_token}
-        else:
-            headers = {}
+    @staticmethod
+    def _api_request(method, path, headers=None, body=None):
         if body is not None:
-            headers['content-type'] = 'application/json'
+            body = json.dumps(body)
+            try:
+                headers['content-type'] = 'application/json'
+            except TypeError:  # headers is None
+                headers = {'content-type': 'application/json'}
 
         response = requests.request(method,
                                     '{}/{}'.format(API_BASE_URI, path),
                                     headers=headers,
-                                    data=json.dumps(body))
+                                    data=body)
+
         response.raise_for_status()
         return response.json()
 
-    def status(self):
-        return self._api_request('GET', 'status', auth=False)['status']
+    def _authed_api_request(self, method, path, body=None):
+        headers = {'x-api-user': self.user_id,
+                   'x-api-key': self.api_token}
+        return self._api_request(method, path, headers, body)
+
+    @classmethod
+    def status(cls):
+        return cls._api_request('GET', 'status')['status']
 
     def tasks(self):
         return list(map(Task.new_from_api_response,
-                        self._api_request('GET', 'user/tasks')))
+                        self._authed_api_request('GET', 'user/tasks')))
 
     def create_task(self, task_type, text=None):
         data = {'type': task_type}
         if text is not None:
             data['text'] = text
         return Task.new_from_api_response(
-                self._api_request('POST', 'user/tasks', data))
+                self._authed_api_request('POST', 'user/tasks', data))
 
 class Task(object):
     def __init__(self,
