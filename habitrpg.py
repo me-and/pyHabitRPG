@@ -1,13 +1,22 @@
 import json
+import os.path
 
 import requests
 
 API_BASE_URI = 'https://habitrpg.com/api/v2'
+DEFAULT_LOGIN_FILE = os.path.expanduser('~/.habitrpg')
 
 class HabitRPG(object):
     def __init__(self, user_id=None, api_token=None):
         self.user_id = user_id
         self.api_token = api_token
+
+    @classmethod
+    def login_from_file(cls, file_name=DEFAULT_LOGIN_FILE):
+        with open(file_name) as login_file:
+            user_id = login_file.readline().strip()
+            api_token = login_file.readline().strip()
+        return cls(user_id, api_token)
 
     def _api_request(self, method, path, body=None, auth=True):
         if auth:
