@@ -31,7 +31,6 @@ class HabitRPG(object):
                                     '{}/{}'.format(API_BASE_URI, path),
                                     headers=headers,
                                     data=json.dumps(body))
-        self.latest_response = response
         response.raise_for_status()
         return response.json()
 
