@@ -108,7 +108,8 @@ class Habit(Task):
     def new_from_api_response(cls, api_response):
         return cls(up=api_response['up'],
                    down=api_response['down'],
-                   history=api_response['history'],  # TODO Parse this
+                   history=list(map(HistoryStamp.new_from_api_response,
+                                    api_response['history'])),
                    id_code=api_response['id'],
                    text=api_response['text'],
                    notes=api_response['notes'],
@@ -143,7 +144,8 @@ class Daily(Task):
                    checklist=api_response.get('checklist'),  # TODO Parse this
                    collapse_checklist=api_response.get('collapseChecklist'),
                    streak=api_response['streak'],
-                   history=api_response['history'],  # TODO Parse this
+                   history=list(map(HistoryStamp.new_from_api_response,
+                                    api_response['history'])),
                    id_code=api_response['id'],
                    text=api_response['text'],
                    notes=api_response['notes'],
@@ -198,3 +200,14 @@ class Reward(Task):
                    date_created=parse_timestamp(api_response['dateCreated']),
                    attribute=api_response['attribute'],
                    challenge=api_response.get('challenge'))  # TODO Parse this
+
+class HistoryStamp(object):
+    def __init__(self, timestamp, value):
+        self.timestamp = timestamp
+        self.value = value
+
+    @classmethod
+    def new_from_api_response(cls, api_response):
+        return cls(
+            datetime.datetime.fromtimestamp(api_response['date'] / 1000),
+            api_response['value'])
