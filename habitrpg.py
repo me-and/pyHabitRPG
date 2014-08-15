@@ -53,7 +53,7 @@ class HabitRPG(object):
         return cls._api_request('GET', 'status')['status']
 
     def tasks(self):
-        return list(map(Task.new_from_api_response,
+        return list(map(lambda x: Task.new_from_api_response(self, x),
                         self._authed_api_request('GET', 'user/tasks')))
 
     def create_task(self, task_type, text=None):
@@ -61,10 +61,12 @@ class HabitRPG(object):
         if text is not None:
             data['text'] = text
         return Task.new_from_api_response(
+                self,
                 self._authed_api_request('POST', 'user/tasks', data))
 
 class Task(object):
     def __init__(self,
+                 habitrpg,
                  id_code,
                  text,
                  notes,
@@ -74,6 +76,7 @@ class Task(object):
                  date_created,
                  attribute,
                  challenge):
+        self.habitrpg = habitrpg
         self.id_code = id_code
         self.text = text
         self.notes = notes
@@ -88,7 +91,7 @@ class Task(object):
     def new_from_api_response(habitrpg, api_response):
         for task_class in Habit, Daily, Todo, Reward:
             if api_response['type'] == task_class.task_type:
-                return task_class.new_from_api_response(api_response)
+                return task_class.new_from_api_response(habitrpg, api_response)
         raise KeyError(api_response['type'])  # Nothing matched
 
 class Habit(Task):
@@ -101,8 +104,9 @@ class Habit(Task):
         super().__init__(**kwargs)
 
     @classmethod
-    def new_from_api_response(cls, api_response):
-        return cls(up=api_response['up'],
+    def new_from_api_response(cls, habitrpg, api_response):
+        return cls(habitrpg=habitrpg,
+                   up=api_response['up'],
                    down=api_response['down'],
                    history=list(map(HistoryStamp.new_from_api_response,
                                     api_response['history'])),
@@ -136,8 +140,9 @@ class Daily(Task):
         super().__init__(**kwargs)
 
     @classmethod
-    def new_from_api_response(cls, api_response):
-        return cls(completed=api_response['completed'],
+    def new_from_api_response(cls, habitrpg, api_response):
+        return cls(habitrpg=habitrpg,
+                   completed=api_response['completed'],
                    repeat=api_response['repeat'],  # TODO Parse this
                    checklist=api_response.get('checklist'),  # TODO Parse this
                    collapse_checklist=api_response.get('collapseChecklist'),
@@ -171,8 +176,9 @@ class Todo(Task):
         super().__init__(**kwargs)
 
     @classmethod
-    def new_from_api_response(cls, api_response):
+    def new_from_api_response(cls, habitrpg, api_response):
         return cls(
+            habitrpg=habitrpg,
             completed=api_response['completed'],
             due_date=parse_timestamp(api_response.get('date')),
             date_completed=parse_timestamp(api_response.get('dateCompleted')),
@@ -192,8 +198,9 @@ class Reward(Task):
     task_type = 'reward'
 
     @classmethod
-    def new_from_api_response(cls, api_response):
-        return cls(id_code=api_response['id'],
+    def new_from_api_response(cls, habitrpg, api_response):
+        return cls(habitrpg=habitrpg,
+                   id_code=api_response['id'],
                    text=api_response['text'],
                    notes=api_response['notes'],
                    tags=api_response.get('tags'),  # TODO Parse this
