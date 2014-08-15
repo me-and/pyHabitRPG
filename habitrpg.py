@@ -97,17 +97,17 @@ class Task(object):
 class Habit(Task):
     task_type = 'habit'
 
-    def __init__(self, up, down, history, **kwargs):
-        self.up = up
-        self.down = down
+    def __init__(self, can_up, can_down, history, **kwargs):
+        self.can_up = can_up
+        self.can_down = can_down
         self.history = history
         super().__init__(**kwargs)
 
     @classmethod
     def new_from_api_response(cls, habitrpg, api_response):
         return cls(habitrpg=habitrpg,
-                   up=api_response['up'],
-                   down=api_response['down'],
+                   can_up=api_response['up'],
+                   can_down=api_response['down'],
                    history=list(map(HistoryStamp.new_from_api_response,
                                     api_response['history'])),
                    id_code=api_response['id'],
