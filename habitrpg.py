@@ -85,19 +85,15 @@ class Task(object):
         self.challenge = challenge
 
     @staticmethod
-    def new_from_api_response(api_response):
-        if api_response['type'] == 'habit':
-            return Habit.new_from_api_response(api_response)
-        elif api_response['type'] == 'daily':
-            return Daily.new_from_api_response(api_response)
-        elif api_response['type'] == 'todo':
-            return Todo.new_from_api_response(api_response)
-        elif api_response['type'] == 'reward':
-            return Reward.new_from_api_response(api_response)
-        else:
-            raise KeyError(api_response['type'])
+    def new_from_api_response(habitrpg, api_response):
+        for task_class in Habit, Daily, Todo, Reward:
+            if api_response['type'] == task_class.task_type:
+                return task_class.new_from_api_response(api_response)
+        raise KeyError(api_response['type'])  # Nothing matched
 
 class Habit(Task):
+    task_type = 'habit'
+
     def __init__(self, up, down, history, **kwargs):
         self.up = up
         self.down = down
@@ -121,6 +117,8 @@ class Habit(Task):
                    challenge=api_response.get('challenge'))  # TODO Parse this
 
 class Daily(Task):
+    task_type = 'daily'
+
     def __init__(self,
                  completed,
                  repeat,
@@ -157,6 +155,8 @@ class Daily(Task):
                    challenge=api_response.get('challenge'))  # TODO Parse this
 
 class Todo(Task):
+    task_type = 'todo'
+
     def __init__(self,
                  completed,
                  due_date,
@@ -189,6 +189,8 @@ class Todo(Task):
             challenge=api_response.get('challenge'))  # TODO Parse this
 
 class Reward(Task):
+    task_type = 'reward'
+
     @classmethod
     def new_from_api_response(cls, api_response):
         return cls(id_code=api_response['id'],
