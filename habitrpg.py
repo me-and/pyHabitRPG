@@ -40,7 +40,12 @@ class HabitRPG(object):
                                     headers=headers,
                                     data=body)
 
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            print(response.json()['err'])
+            raise
+
         return response.json()
 
     def _authed_api_request(self, method, path, body=None):
