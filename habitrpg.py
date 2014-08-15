@@ -120,6 +120,15 @@ class Habit(Task):
                    attribute=api_response['attribute'],
                    challenge=api_response.get('challenge'))  # TODO Parse this
 
+    def score_up(self):
+        return self.habitrpg._authed_api_request('POST',
+                                                 'user/tasks/{}/up'
+                                                     .format(self.id_code))
+    def score_down(self):
+        return self.habitrpg._authed_api_request('POST',
+                                                 'user/tasks/{}/down'
+                                                     .format(self.id_code))
+
 class Daily(Task):
     task_type = 'daily'
 
