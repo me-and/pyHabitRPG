@@ -57,6 +57,18 @@ class HabitRPG(object):
     def status(cls):
         return cls._api_request('GET', 'status')['status']
 
+    @classmethod
+    def content(cls, language=None):
+        if language is not None:
+            body = {'language': language}
+        else:
+            body = None
+        return cls._api_request('GET', 'content', body=body)
+
+    @classmethod
+    def user_model(cls):
+        return cls._api_request('GET', 'content/paths')
+
     def tasks(self):
         return list(map(lambda x: Task.new_from_api_response(self, x),
                         self._authed_api_request('GET', 'user/tasks')))
