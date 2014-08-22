@@ -27,7 +27,7 @@ class HabitRPG(object):
         return cls(user_id, api_token)
 
     @staticmethod
-    def _api_request(method, path, headers=None, body=None):
+    def _api_request(method, path, headers=None, body=None, decode=True):
         if body is not None:
             body = json.dumps(body)
             try:
@@ -46,12 +46,20 @@ class HabitRPG(object):
             print(response.json()['err'])
             raise
 
-        return response.json()
+        if decode:
+            content_type = response.headers['content-type']
+            if content_type.startswith('application/json;'):
+                return response.json()
+            else:
+                raise RuntimeError('Content type "{}" unrecognized'
+                        .format(content_type))
+        else:
+            return response
 
-    def _authed_api_request(self, method, path, body=None):
+    def _authed_api_request(self, method, path, body=None, decode=True):
         headers = {'x-api-user': self.user_id,
                    'x-api-key': self.api_token}
-        return self._api_request(method, path, headers, body)
+        return self._api_request(method, path, headers, body, decode)
 
     @classmethod
     def status(cls):
