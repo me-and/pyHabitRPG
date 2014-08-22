@@ -119,6 +119,21 @@ class Task(object):
                 return task_class.new_from_api_response(habitrpg, api_response)
         raise KeyError(api_response['type'])  # Nothing matched
 
+    def score_up(self):
+        return self.habitrpg._authed_api_request('POST',
+                                                 'user/tasks/{}/up'
+                                                     .format(self.id_code))
+    def score_down(self):
+        return self.habitrpg._authed_api_request('POST',
+                                                 'user/tasks/{}/down'
+                                                     .format(self.id_code))
+
+class CompletableTaskMixin(object):
+    def complete(self):
+        return self.score_up()
+    def uncomplete(self):
+        return self.score_down()
+
 class Habit(Task):
     task_type = 'habit'
 
@@ -145,16 +160,7 @@ class Habit(Task):
                    attribute=api_response['attribute'],
                    challenge=api_response.get('challenge'))  # TODO Parse this
 
-    def score_up(self):
-        return self.habitrpg._authed_api_request('POST',
-                                                 'user/tasks/{}/up'
-                                                     .format(self.id_code))
-    def score_down(self):
-        return self.habitrpg._authed_api_request('POST',
-                                                 'user/tasks/{}/down'
-                                                     .format(self.id_code))
-
-class Daily(Task):
+class Daily(Task, CompletableTaskMixin):
     task_type = 'daily'
 
     def __init__(self,
@@ -193,7 +199,7 @@ class Daily(Task):
                    attribute=api_response['attribute'],
                    challenge=api_response.get('challenge'))  # TODO Parse this
 
-class Todo(Task):
+class Todo(Task, CompletableTaskMixin):
     task_type = 'todo'
 
     def __init__(self,
