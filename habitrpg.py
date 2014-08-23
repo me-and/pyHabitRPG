@@ -82,6 +82,9 @@ class HabitRPG(object):
     def user_model(cls):
         return cls._api_request('GET', 'content/paths')
 
+    def history(self):
+        return self._authed_api_request('GET', 'export/history')
+
     def tasks(self):
         return list(map(lambda x: Task.new_from_api_response(self, x),
                         self._authed_api_request('GET', 'user/tasks')))
