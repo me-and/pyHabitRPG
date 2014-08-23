@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 import habitrpg
 
+from pytz import timezone
+from datetime import datetime
+
 MAX_TODOS = 20
 CLEAR_THRESHOLD = 15
 TASK_NAME = 'Cut the todo list down to ≤{} tasks'.format(CLEAR_THRESHOLD)
+TZ = timezone('Europe/London')
 
 if __name__ == '__main__':
     hrpg = habitrpg.HabitRPG.login_from_file()
@@ -15,7 +19,11 @@ if __name__ == '__main__':
                             not task.completed),
                        None)
 
+    notes = '{:%A %I:%M %p}: {} tasks'.format(datetime.now(TZ),
+                                              incomplete_todos)
     if incomplete_todos > MAX_TODOS and reduce_task is None:
-        Todo.create(text=TASK_NAME)
-    if incomplete_todos <= (CLEAR_THRESHOLD + 1) and reduce_task is not None:
+        Todo.create(text=TASK_NAME, notes=notes)
+    elif incomplete_todos <= (CLEAR_THRESHOLD + 1) and reduce_task is not None:
         reduce_task.complete()
+    elif reduce_task is not None:
+        reduce_task.update(notes=notes)
