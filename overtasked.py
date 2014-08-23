@@ -16,6 +16,6 @@ if __name__ == '__main__':
                        None)
 
     if incomplete_todos > MAX_TODOS and reduce_task is None:
-        hrpg.create_task('todo', TASK_NAME)
+        Todo.create(text=TASK_NAME)
     if incomplete_todos <= (CLEAR_THRESHOLD + 1) and reduce_task is not None:
         reduce_task.complete()

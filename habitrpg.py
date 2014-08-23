@@ -81,14 +81,6 @@ class HabitRPG(object):
         return list(map(lambda x: Task.new_from_api_response(self, x),
                         self._authed_api_request('GET', 'user/tasks')))
 
-    def create_task(self, task_type, text=None):
-        data = {'type': task_type}
-        if text is not None:
-            data['text'] = text
-        return Task.new_from_api_response(
-                self,
-                self._authed_api_request('POST', 'user/tasks', data))
-
 class Task(object):
     def __init__(self,
                  habitrpg,
@@ -118,6 +110,24 @@ class Task(object):
             if api_response['type'] == task_class.task_type:
                 return task_class.new_from_api_response(habitrpg, api_response)
         raise KeyError(api_response['type'])  # Nothing matched
+
+    @classmethod
+    def create(cls, habitrpg, request=None, text=None, notes=None, value=None,
+               priority=None):
+        if request is None:
+            request = {}
+        request['type'] = cls.task_type
+        if text is not None:
+            request['text'] = text
+        if notes is not None:
+            request['notes'] = notes
+        if value is not None:
+            request['value'] = value
+        if priority is not None:
+            request['priority'] = priority
+
+        response = habitrpg._authed_api_request('POST', 'user/tasks', request)
+        return cls.new_from_api_response(habitrpg, response)
 
     def score_up(self):
         return self.habitrpg._authed_api_request('POST',
@@ -160,6 +170,15 @@ class Habit(Task):
                    attribute=api_response['attribute'],
                    challenge=api_response.get('challenge'))  # TODO Parse this
 
+    @classmethod
+    def create(cls, habitrpg, can_up=None, can_down=None, **kwargs):
+        request = {}
+        if can_up is not None:
+            request['up'] = can_up
+        if can_down is not None:
+            request['down'] = can_down
+        return super().create(habitrpg, request, **kwargs)
+
 class Daily(Task, CompletableTaskMixin):
     task_type = 'daily'
 
@@ -199,6 +218,13 @@ class Daily(Task, CompletableTaskMixin):
                    attribute=api_response['attribute'],
                    challenge=api_response.get('challenge'))  # TODO Parse this
 
+    @classmethod
+    def create(cls, habitrpg, completed=None, **kwargs):
+        request = {}
+        if completed is not None:
+            request['completed'] = completed
+        return super().create(habitrpg, request, **kwargs)
+
 class Todo(Task, CompletableTaskMixin):
     task_type = 'todo'
 
@@ -233,6 +259,13 @@ class Todo(Task, CompletableTaskMixin):
             date_created=parse_timestamp(api_response['dateCreated']),
             attribute=api_response['attribute'],
             challenge=api_response.get('challenge'))  # TODO Parse this
+
+    @classmethod
+    def create(cls, habitrpg, completed=None, **kwargs):
+        request = {}
+        if completed is not None:
+            request['completed'] = completed
+        return super().create(habitrpg, request, **kwargs)
 
 class Reward(Task):
     task_type = 'reward'
