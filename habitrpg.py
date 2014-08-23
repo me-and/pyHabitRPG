@@ -1,6 +1,8 @@
 import json
 import os.path
 import datetime
+from csv import DictReader
+from io import StringIO
 
 import requests
 
@@ -50,6 +52,9 @@ class HabitRPG(object):
             content_type = response.headers['content-type']
             if content_type.startswith('application/json;'):
                 return response.json()
+            elif content_type.startswith('text/csv;'):
+                stream = StringIO(response.text)  # Needed for csv.DictReader
+                return DictReader(stream)
             else:
                 raise RuntimeError('Content type "{}" unrecognized'
                         .format(content_type))
