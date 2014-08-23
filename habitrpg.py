@@ -129,6 +129,25 @@ class Task(object):
         response = habitrpg._authed_api_request('POST', 'user/tasks', request)
         return cls.new_from_api_response(habitrpg, response)
 
+    def update(self, request=None, task_type=None, text=None, notes=None,
+               value=None, priority=None):
+        if request is None:
+            request = {}
+        if task_type is not None:
+            request['type'] = task_type
+        if text is not None:
+            request['text'] = text
+        if notes is not None:
+            request['notes'] = notes
+        if value is not None:
+            request['value'] = value
+        if priority is not None:
+            request['priority'] = priority
+
+        response = self.habitrpg._authed_api_request(
+                'PUT', 'user/tasks/{}'.format(self.id_code), request)
+        # TODO Update self
+
     def score_up(self):
         return self.habitrpg._authed_api_request('POST',
                                                  'user/tasks/{}/up'
