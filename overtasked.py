@@ -22,7 +22,7 @@ if __name__ == '__main__':
     notes = '{:%A %I:%M %p}: {} tasks'.format(datetime.now(TZ),
                                               incomplete_todos)
     if incomplete_todos > MAX_TODOS and reduce_task is None:
-        Todo.create(text=TASK_NAME, notes=notes)
+        habitrpg.Todo.create(hrpg, text=TASK_NAME, notes=notes)
     elif incomplete_todos <= (CLEAR_THRESHOLD + 1) and reduce_task is not None:
         reduce_task.complete()
     elif reduce_task is not None:
