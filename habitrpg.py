@@ -7,7 +7,7 @@ from io import StringIO
 import requests
 
 API_BASE_URI = 'https://habitrpg.com/api/v2'
-DEFAULT_LOGIN_FILE = os.path.expanduser('~/.habitrpg')
+DEFAULT_LOGIN_FILE = os.path.expanduser(os.path.join('~', '.habitrpg'))
 
 def parse_timestamp(string):
     if string is None:
