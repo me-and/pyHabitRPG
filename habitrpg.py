@@ -165,6 +165,13 @@ class Task(object):
                                                  'user/tasks/{}/down'
                                                      .format(self.id_code))
 
+    @classmethod
+    def get(cls, habitrpg, id_code):
+        return cls.new_from_api_response(
+            habitrpg,
+            habitrpg._authed_api_request('GET',
+                                         'user/tasks/{}'.format(id_code)))
+
 class CompletableTaskMixin(object):
     def complete(self):
         return self.score_up()
