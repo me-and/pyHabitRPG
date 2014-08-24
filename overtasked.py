@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-import habitrpg
+from datetime import datetime
 
 from pytz import timezone
-from datetime import datetime
+
+import habitrpg
 
 MAX_TODOS = 20
 CLEAR_THRESHOLD = 15
