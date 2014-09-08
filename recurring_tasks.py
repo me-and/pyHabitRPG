@@ -16,14 +16,15 @@ TZ = timezone('Europe/London')
 # Not supposed to be used as part of the main script; this is here as a
 # convenience function until the code can cope without needing tasks to be
 # bootstrapped.
-def create_recurring_task(text, filename, min, max):
-    task = habitrpg.Todo.create(habitrpg.HabitRPG.login_from_file(), text=text)
+def create_recurring_task(text, filename, min, max, notes=None):
+    task = habitrpg.Todo.create(habitrpg.HabitRPG.login_from_file(), text=text, notes=notes)
     task_data = {'current': {'created': task.date_created,
                              'id': task.id_code},
                  'next': None,
                  'previous': None,
                  'repeat': {'min': min, 'max': max},
-                 'text': text}
+                 'text': text,
+                 'notes': notes}
     file_path = os.path.join(TASK_DIRECTORY, filename)
     with open(file_path, 'w') as task_file:
         yaml.safe_dump(task_data, task_file, default_flow_style=False)
@@ -62,6 +63,13 @@ if __name__ == '__main__':
         except TypeError:  # task_data['previous'] == None
             pass
 
+        # Add a notes field if there isn't one already -- needed for back
+        # compatibility.
+        try:
+            task_data['notes']
+        except KeyError:
+            task_data['notes'] = None
+
         if task_data['current'] is not None:
             task = habitrpg.Todo.get(hrpg, task_data['current']['id'])
             if task.completed:
@@ -76,7 +84,8 @@ if __name__ == '__main__':
 
         if (task_data['next'] is not None and
                 datetime.datetime.now(TZ) >= task_data['next']):
-            task = habitrpg.Todo.create(hrpg, text=task_data['text'])
+            task = habitrpg.Todo.create(hrpg, text=task_data['text'],
+                                        notes=task_data['notes'])
             task_data['current'] = {'id': task.id_code,
                                     'created': task.date_created}
             task_data['next'] = None
