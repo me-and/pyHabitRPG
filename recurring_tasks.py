@@ -32,6 +32,8 @@ def create_recurring_task(text, filename, min, max, notes=None):
 if __name__ == '__main__':
     hrpg = habitrpg.HabitRPG.login_from_file()
     for filename in os.listdir(TASK_DIRECTORY):
+        if filename.startswith('.'):  # Skip hidden files like Vim swap files
+            continue
         file_path = os.path.join(TASK_DIRECTORY, filename)
         with open(file_path) as task_file:
             task_data = yaml.safe_load(task_file)
