@@ -65,7 +65,6 @@ if __name__ == '__main__':
         if task_data['current'] is not None:
             task = habitrpg.Todo.get(hrpg, task_data['current']['id'])
             if task.completed:
-                print('Task "{}" was completed!'.format(task_data['text']))
                 task_data['previous'] = task_data['current']
                 task_data['previous']['completed'] = task.date_completed
                 task_data['current'] = None
