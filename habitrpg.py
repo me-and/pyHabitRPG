@@ -139,7 +139,7 @@ class User(object):
         self.populate_tags_from_api_response(response['tags'])
 
     def populate_tags_from_api_response(self, api_response):
-        self.tags = [Tag.create_from_user_api_response(self, tag_data) for
+        self.tags = [Tag.create_from_api_response(self, tag_data) for
                 tag_data in api_response]
         self.tags_populated = True
 
@@ -170,7 +170,7 @@ class User(object):
                 raise ValueError('Unexpected task {!r}'.format(task))
         self.tasks_populated = True
 
-class Task(object):
+class UserPlusIDMixin(object):
     def __init__(self, user, id_code):
         self.user = user
         self.id_code = id_code
@@ -186,13 +186,23 @@ class Task(object):
         return hash((self.user, self.id_code))
 
     def __repr__(self):
+        return '<{} id {!r}>'.format(self.__class__.__name__,
+                                     self.id_code)
+
+    @classmethod
+    def create_from_api_response(cls, user, api_response):
+        inst = cls(user, api_response['id'])
+        inst.populate_from_api_response(api_response)
+        return inst
+
+class Task(UserPlusIDMixin):
+    def __repr__(self):
         if self.populated:
             return '<{} id {!r} title {!r}>'.format(self.__class__.__name__,
                                                     self.id_code,
                                                     self.title)
         else:
-            return '<{} id {!r}>'.format(self.__class__.__name__,
-                                         self.id_code)
+            return super().__repr__()
 
     def fetch(self):
         task_data = self.user.api_request('GET',
@@ -213,12 +223,6 @@ class Task(object):
         self.attribute = api_response['attribute']
         self.challenge = api_response.get('challenge')  # TODO Parse this
         self.populated = True
-
-    @classmethod
-    def create_from_api_response(cls, user, api_response):
-        task = cls(user, api_response['id'])
-        task.populate_from_api_response(api_response)
-        return task
 
     @classmethod
     def new(cls, user, *, request=None, title=None, notes=None, value=None,
@@ -396,37 +400,16 @@ class HistoryStamp(object):
             datetime.datetime.fromtimestamp(api_response['date'] / 1000),
             api_response['value'])
 
-class Tag(object):
-    def __init__(self, user, id_code):
-        self.user = user
-        self.id_code = id_code
-        self.populated = False
-
-    def __eq__(self, other):
-        try:
-            return self.user == other.user and self.id_code == other.id_code
-        except AttributeError:
-            return False
-
-    def __hash__(self):
-        return hash((self.user, self.id_code))
-
+class Tag(UserPlusIDMixin):
     def __repr__(self):
         if self.populated:
             return '<{} id {!r} name {!r}>'.format(self.__class__.__name__,
                                                     self.id_code,
                                                     self.name)
         else:
-            return '<{} id {!r}>'.format(self.__class__.__name__,
-                                         self.id_code)
+            return super().__repr__()
 
-    @classmethod
-    def create_from_user_api_response(cls, user, api_response):
-        tag = cls(user, api_response['id'])
-        tag.populate_from_user_api_response(api_response)
-        return tag
-
-    def populate_from_user_api_response(self, api_response):
+    def populate_from_api_response(self, api_response):
         self.name = api_response.get('name')  # May not exist!
         try:
             challenge = api_response['challenge']
