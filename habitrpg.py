@@ -20,6 +20,23 @@ class HabitRPG(object):
     def __init__(self, uri=DEFAULT_API_BASE_URI):
         self.uri = uri
 
+    def __eq__(self, other):
+        try:
+            return self.uri == other.uri
+        except AttributeError:
+            return False
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.uri)
+
+    def __repr__(self):
+        if self.uri == DEFAULT_API_BASE_URI:
+            return '{}()'.format(self.__class__.__name__)
+        else:
+            return '{}({!r})'.format(self.__class__.__name__, self.uri)
+
     def api_request(self, method, path, headers=None, body=None, decode=True):
         if body is not None:
             body = json.dumps(body)
@@ -67,6 +84,24 @@ class User(object):
         self.user_id = user_id
         self.api_token = api_token
 
+    def __eq__(self, other):
+        try:
+            return (self.hrpg == other.hrpg and self.user_id == other.user_id
+                    and self.api_token == other.api_token)
+        except AttributeError:
+            return False
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash((self.hrpg, self.user_id, self.api_token))
+
+    def __repr__(self):
+        return '{}({!r}, {!r}, {!r})'.format(self.__class__.__name__,
+                                             self.hrpg,
+                                             self.user_id,
+                                             self.api_token)
+
     @classmethod
     def from_file(cls, hrpg=None, file_path=DEFAULT_LOGIN_FILE):
         if hrpg is None:
@@ -100,6 +135,26 @@ class Task(object):
         self.user = user
         self.id_code = id_code
         self.populated = False
+
+    def __eq__(self, other):
+        try:
+            return self.user == other.user and self.id_code == other.id_code
+        except AttributeError:
+            return False
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash((self.user, self.id_code))
+
+    def __repr__(self):
+        if self.populated:
+            return '<{} id {!r} title {!r}>'.format(self.__class__.__name__,
+                                                    self.id_code,
+                                                    self.title)
+        else:
+            return '<{} id {!r}>'.format(self.__class__.__name__,
+                                         self.title)
 
     def fetch(self):
         task_data = self.user.api_request('GET',
@@ -272,6 +327,23 @@ class HistoryStamp(object):
     def __init__(self, timestamp, value):
         self.timestamp = timestamp
         self.value = value
+
+    def __eq__(self, other):
+        try:
+            return (self.timestamp == other.timestamp and
+                    self.value == other.value)
+        except AttributeError:
+            return False
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash((self.timestamp, self.value))
+
+    def __repr__(self):
+        return '{}({!r}, {!r})'.format(self.__class__.__name__,
+                                       self.timestamp,
+                                       self.value)
 
     @classmethod
     def create_from_api_response(cls, api_response):
