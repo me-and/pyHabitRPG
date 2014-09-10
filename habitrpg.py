@@ -228,7 +228,7 @@ class Task(object):
 
     @classmethod
     def new(cls, user, *, request=None, title=None, notes=None, value=None,
-            priority=None):
+            priority=None, tags=None):
         if request is None:
             request = {}
         request['type'] = cls.task_type
@@ -240,6 +240,10 @@ class Task(object):
             request['value'] = value
         if priority is not None:
             request['priority'] = priority
+        if tags is not None:
+            request['tags'] = {}
+            for tag in tags:
+                request['tags'][tag.id_code] = True
 
         response = user.api_request('POST', 'user/tasks', request)
         return cls.create_from_api_response(user, response)
