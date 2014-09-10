@@ -306,10 +306,17 @@ class CompletableTaskMixin(object):
 
 class ChecklistTaskMixin(object):
     def populate_from_api_response(self, api_response):
-        # Some elements may be missing from the API response; use `dict.get()`
-        # to pick up those, since that will return `None` if the element isn't
-        # in the dictionary.
-        self.checklist = api_response.get('checklist')
+        # Both 'checklist' and 'collapseChecklist' may be missing from the API
+        # response.  We test explicitly for the former case, and in the latter
+        # case just use `dict.get()` to pick it up, since that will return
+        # `None` if the element isn't in the dictionary.
+        if 'checklist' in api_response:
+            self.checklist = [CheckItem.create_from_api_response(self.user,
+                                                                 self,
+                                                                 check_data)
+                    for check_data in api_response['checklist']]
+        else:
+            self.checklist = []
         self.collapse_checklist = api_response.get('collapseChecklist')
         super().populate_from_api_response(api_response)
 
@@ -456,3 +463,37 @@ class Tag(UserPlusIDMixin):
         response = self.user.api_request('DELETE',
                                          'user/tags/{}'.format(self.id_code))
         user.populate_tags_from_api_response(response)
+
+class CheckItem(UserPlusIDMixin):
+    def __init__(self, user, task, id_code):
+        self.task = task
+        super().__init__(user, id_code)
+
+    def __eq__(self, other):
+        try:
+            return (self.user == other.user and self.task == other.task and
+                    self.id_code == other.id_code)
+        except AttributeError:
+            return NotImplemented
+
+    def __hash__(self):
+        return hash((self.user, self.task, self.id_code))
+
+    def __repr__(self):
+        if self.populated:
+            return '<{} id {!r} text {!r}>'.format(self.__class__.__name__,
+                                                   self.id_code,
+                                                   self.text)
+        else:
+            return super().__repr__()
+
+    @classmethod
+    def create_from_api_response(cls, user, task, api_response):
+        inst = cls(user, task, api_response['id'])
+        inst.populate_from_api_response(api_response)
+        return inst
+
+    def populate_from_api_response(self, api_response):
+        self.text = api_response['text']
+        self.completed = api_response['completed']
+        self.populated = True
