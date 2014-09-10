@@ -99,6 +99,7 @@ class Task(object):
     def __init__(self, user, id_code):
         self.user = user
         self.id_code = id_code
+        self.populated = False
 
     def fetch(self):
         task_data = self.user.api_request('GET',
@@ -118,6 +119,7 @@ class Task(object):
         self.priority = api_response['priority']
         self.attribute = api_response['attribute']
         self.challenge = api_response.get('challenge')  # TODO Parse this
+        self.populated = True
 
     @classmethod
     def create_from_api_response(cls, user, api_response):
