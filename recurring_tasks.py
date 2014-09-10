@@ -17,14 +17,14 @@ TZ = timezone('Europe/London')
 # convenience function until the code can cope without needing tasks to be
 # bootstrapped.
 def create_recurring_task(title, filename, min, max, notes=None):
-    task = habitrpg.Todo.new(habitrpg.HabitRPG.login_from_file(),
+    task = habitrpg.Todo.new(habitrpg.User.from_file(),
                              title=title, notes=notes)
     task_data = {'current': {'created': task.date_created,
                              'id': task.id_code},
                  'next': None,
                  'previous': None,
                  'repeat': {'min': min, 'max': max},
-                 'text': text,
+                 'title': title,
                  'notes': notes}
     file_path = os.path.join(TASK_DIRECTORY, filename)
     with open(file_path, 'w') as task_file:
@@ -73,6 +73,15 @@ if __name__ == '__main__':
         except KeyError:
             task_data['notes'] = None
 
+        # Convert a "text" field to a "title" field if necessary -- needed for
+        # back compatibility.
+        try:
+            title = task_data.pop('text')
+        except KeyError:
+            pass
+        else:
+            task_data['title'] = title
+
         if task_data['current'] is not None:
             task = habitrpg.Todo(user, task_data['current']['id'])
             task.fetch()
@@ -88,7 +97,7 @@ if __name__ == '__main__':
 
         if (task_data['next'] is not None and
                 datetime.datetime.now(TZ) >= task_data['next']):
-            task = habitrpg.Todo.new(user, title=task_data['text'],
+            task = habitrpg.Todo.new(user, title=task_data['title'],
                                      notes=task_data['notes'])
             task_data['current'] = {'id': task.id_code,
                                     'created': task.date_created}
