@@ -88,6 +88,7 @@ class User(object):
         self.user_id = user_id
         self.api_token = api_token
         self.tasks_populated = False
+        self.tags_populated = False
 
     def __eq__(self, other):
         try:
@@ -128,6 +129,7 @@ class User(object):
 
     def fetch(self):
         response = self.api_request('GET', 'user')
+
         self.habits = [Habit.create_from_api_response(self, task_data) for
                 task_data in response['habits']]
         self.dailies = [Daily.create_from_api_response(self, task_data) for
@@ -137,6 +139,10 @@ class User(object):
         self.rewards = [Reward.create_from_api_response(self, task_data) for
                 task_data in response['rewards']]
         self.tasks_populated = True
+
+        self.tags = [Tag.create_from_user_api_response(self, tag_data) for
+                tag_data in response['tags']]
+        self.tags_populated = True
 
     def task_from_api_response(self, api_response):
         task_type = api_response['type']
