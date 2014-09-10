@@ -24,7 +24,7 @@ class HabitRPG(object):
         try:
             return self.uri == other.uri
         except AttributeError:
-            return False
+            return NotImplemented
     def __ne__(self, other):
         return not self == other
 
@@ -95,7 +95,7 @@ class User(object):
             return (self.hrpg == other.hrpg and self.user_id == other.user_id
                     and self.api_token == other.api_token)
         except AttributeError:
-            return False
+            return NotImplemented
     def __ne__(self, other):
         return not self == other
 
@@ -184,7 +184,7 @@ class Task(object):
         try:
             return self.user == other.user and self.id_code == other.id_code
         except AttributeError:
-            return False
+            return NotImplemented
     def __ne__(self, other):
         return not self == other
 
@@ -386,7 +386,7 @@ class HistoryStamp(object):
             return (self.timestamp == other.timestamp and
                     self.value == other.value)
         except AttributeError:
-            return False
+            return NotImplemented
     def __ne__(self, other):
         return not self == other
 
