@@ -385,3 +385,49 @@ class HistoryStamp(object):
         return cls(
             datetime.datetime.fromtimestamp(api_response['date'] / 1000),
             api_response['value'])
+
+class Tag(object):
+    def __init__(self, user, id_code):
+        self.user = user
+        self.id_code = id_code
+        self.populated = False
+
+    def __eq__(self, other):
+        try:
+            return self.user == other.user and self.id_code == other.id_code
+        except AttributeError:
+            return False
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash((self.user, self.id_code))
+
+    def __repr__(self):
+        if self.populated:
+            return '<{} id {!r} name {!r}>'.format(self.__class__.__name__,
+                                                    self.id_code,
+                                                    self.name)
+        else:
+            return '<{} id {!r}>'.format(self.__class__.__name__,
+                                         self.id_code)
+
+    @classmethod
+    def create_from_user_api_response(cls, user, api_response):
+        tag = cls(user, api_response['id'])
+        tag.populate_from_user_api_response(api_response)
+        return tag
+
+    def populate_from_user_api_response(self, api_response):
+        self.name = api_response['name']
+        try:
+            challenge = api_response['challenge']
+        except KeyError:  # Not on response so no challenge
+            self.challenge = False
+        else:
+            if challenge == 'true':
+                self.challenge = True
+            else:
+                raise ValueError('Unexpected challenge value {!r}'
+                        .format(challenge))
+        self.populated = True
