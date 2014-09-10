@@ -41,10 +41,10 @@ class HabitRPG(object):
                     raise_status=True, decode=True):
         if body is not None:
             body = json.dumps(body)
-            try:
-                headers['content-type'] = 'application/json'
-            except TypeError:  # headers is None
+            if headers is None:
                 headers = {'content-type': 'application/json'}
+            else:
+                headers['content-type'] = 'application/json'
 
         response = requests.request(method,
                                     '{}/{}'.format(self.uri, path),
