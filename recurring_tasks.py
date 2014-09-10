@@ -17,11 +17,17 @@ RECURRING_TAG_NAME = 'recurring'
 # Not supposed to be used as part of the main script; this is here as a
 # convenience function until the code can cope without needing tasks to be
 # bootstrapped.
-def create_recurring_task(title, filename, min, max, notes=None):
+def create_recurring_task(title, filename, min, max,
+                          notes=None, checklist=None):
     user = habitrpg.User.from_file()
     recurring_tag = get_recurring_tag(user)
+    if checklist is not None:
+        checklist_to_submit = ((item, False) for item in checklist)
+    else:
+        checklist_to_submit = None
     task = habitrpg.Todo.new(user, title=title, notes=notes,
-                             tags=(recurring_tag,))
+                             tags=(recurring_tag,),
+                             checklist=checklist_to_submit)
     task_data = {'current': {'created': task.date_created,
                              'id': task.id_code},
                  'next': None,
@@ -29,6 +35,10 @@ def create_recurring_task(title, filename, min, max, notes=None):
                  'repeat': {'min': min, 'max': max},
                  'title': title,
                  'notes': notes}
+    if checklist is None:
+        task_data['checklist'] = []
+    else:
+        task_data['checklist'] = checklist
     file_path = os.path.join(TASK_DIRECTORY, filename)
     with open(file_path, 'w') as task_file:
         yaml.safe_dump(task_data, task_file, default_flow_style=False)
@@ -96,6 +106,13 @@ if __name__ == '__main__':
         else:
             task_data['title'] = title
 
+        # Add a checklist field if there isn't one already -- needed for back
+        # compatibility.
+        try:
+            task_data['checklist']
+        except KeyError:
+            task_data['checklist'] = ()
+
         if task_data['current'] is not None:
             task = habitrpg.Todo(user, task_data['current']['id'])
             task.fetch()
@@ -112,9 +129,14 @@ if __name__ == '__main__':
         if (task_data['next'] is not None and
                 datetime.datetime.now(TZ) >= task_data['next']):
             recurring_tag = get_recurring_tag(user)
+            if task_data['checklist']:
+                checklist = ((text, False) for text in task_data['checklist'])
+            else:
+                checklist = None
             task = habitrpg.Todo.new(user, title=task_data['title'],
                                      notes=task_data['notes'],
-                                     tags=(recurring_tag,))
+                                     tags=(recurring_tag,),
+                                     checklist=checklist)
             task_data['current'] = {'id': task.id_code,
                                     'created': task.date_created}
             task_data['next'] = None
