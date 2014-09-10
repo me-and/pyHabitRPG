@@ -61,6 +61,8 @@ class HabitRPG(object):
             elif content_type.startswith('text/csv;'):
                 stream = StringIO(response.text)  # Needed for csv.DictReader
                 return DictReader(stream)
+            elif content_type == 'text/html':
+                return response.text
             else:
                 raise RuntimeError('Content type "{}" unrecognized'
                         .format(content_type))
