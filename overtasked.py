@@ -14,11 +14,13 @@ if __name__ == '__main__':
     user = habitrpg.User.from_file()
     tasks = user.tasks()
 
-    incomplete_todos = sum(1 for task in tasks if
-            isinstance(task, habitrpg.Todo) and not task.completed)
-    reduce_task = next((task for task in tasks if task.title == TASK_NAME and
-                            not task.completed),
-                       None)
+    reduce_task = None
+    incomplete_todos = 0
+    for task in tasks:
+        if isinstance(task, habitrpg.Todo) and not task.completed:
+            incomplete_todos += 1
+        if task.title == TASK_NAME and not task.completed:
+            reduce_task = task
 
     notes = '{:%A %I:%M %p}: {} tasks'.format(datetime.now(TZ),
                                               incomplete_todos)
