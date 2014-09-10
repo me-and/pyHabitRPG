@@ -474,3 +474,8 @@ class Tag(object):
         user.populate_tags_from_api_response(response)
         tag = user.tags[-1]
         return tag
+
+    def delete(self):
+        response = self.user.api_request('DELETE',
+                                         'user/tags/{}'.format(self.id_code))
+        user.populate_tags_from_api_response(response)
