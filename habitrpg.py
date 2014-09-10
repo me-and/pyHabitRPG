@@ -261,6 +261,11 @@ class Task(object):
                 'PUT', 'user/tasks/{}'.format(self.id_code), request)
         self.populate_from_api_response(response)
 
+    def delete(self):
+        # After calling this, remember to call User.fetch_tasks() if the task
+        # lists need updating.
+        self.user.api_request('DELETE', 'user/tasks/{}'.format(self.id_code))
+
     def _up(self, update=False):
         self.user.api_request('POST', 'user/tasks/{}/up'.format(self.id_code))
         if update:
