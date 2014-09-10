@@ -37,7 +37,8 @@ class HabitRPG(object):
         else:
             return '{}({!r})'.format(self.__class__.__name__, self.uri)
 
-    def api_request(self, method, path, headers=None, body=None, decode=True):
+    def api_request(self, method, path, headers=None, body=None,
+                    raise_status=True, decode=True):
         if body is not None:
             body = json.dumps(body)
             try:
@@ -50,7 +51,8 @@ class HabitRPG(object):
                                     headers=headers,
                                     data=body)
 
-        response.raise_for_status()
+        if raise_status:
+            response.raise_for_status()
 
         if decode:
             content_type = response.headers['content-type']
@@ -111,10 +113,12 @@ class User(object):
             api_token = login_file.readline().strip()
         return cls(hrpg, user_id, api_token)
 
-    def api_request(self, method, path, body=None, decode=True):
+    def api_request(self, method, path, body=None, raise_status=True,
+                    decode=True):
         headers = {'x-api-user': self.user_id,
                    'x-api-key': self.api_token}
-        return self.hrpg.api_request(method, path, headers, body, decode)
+        return self.hrpg.api_request(method, path, headers, body, raise_status,
+                                     decode)
 
     def history(self):
         return self.api_request('GET', 'export/history')
