@@ -92,8 +92,8 @@ class User(object):
         raise KeyError(task_type)  # No match
 
     def tasks(self):
-        return list(map(self.task_from_api_response,
-                        self.api_request('GET', 'user/tasks')))
+        return [self.task_from_api_response(task_data) for task_data in
+                self.api_request('GET', 'user/tasks')]
 
 class Task(object):
     def __init__(self, user, id_code):
@@ -207,8 +207,8 @@ class ChecklistTaskMixin(object):
 
 class HistoryTaskMixin(object):
     def populate_from_api_response(self, api_response):
-        self.history = list(map(HistoryStamp.create_from_api_response,
-                                api_response['history']))
+        self.history = [HistoryStamp.create_from_api_response(hist_item) for
+                hist_item in api_response['history']]
         super().populate_from_api_response(api_response)
 
 class Habit(HistoryTaskMixin, Task):
