@@ -140,8 +140,11 @@ class User(object):
                 task_data in response['rewards']]
         self.tasks_populated = True
 
+        self.populate_tags_from_api_response(response['tags'])
+
+    def populate_tags_from_api_response(self, api_response):
         self.tags = [Tag.create_from_user_api_response(self, tag_data) for
-                tag_data in response['tags']]
+                tag_data in api_response]
         self.tags_populated = True
 
     def task_from_api_response(self, api_response):
@@ -453,3 +456,16 @@ class Tag(object):
             raise RuntimeError('Tag with ID {!r} not found'
                     .format(self.id_code))
         self.populated = True
+
+    @classmethod
+    def new(cls, user, name=None):
+        request = {}
+        if name is not None:
+            request['name'] = name
+        response = user.api_request('POST', 'user/tags', request)
+
+        # The API response is a list of all the tags.  It appears the last tag
+        # is always the one we just created.
+        user.populate_tags_from_api_response(response)
+        tag = user.tags[-1]
+        return tag
