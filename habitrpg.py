@@ -6,30 +6,21 @@ from io import StringIO
 
 import requests
 
-API_BASE_URI = 'https://habitrpg.com/api/v2'
+DEFAULT_API_BASE_URI = 'https://habitrpg.com/api/v2'
 DEFAULT_LOGIN_FILE = os.path.expanduser(os.path.join('~', '.habitrpg'))
 
-def parse_timestamp(string):
-    if string is None:
+def parse_possible_timestamp(timestamp):
+    if timestamp is None:
         return None
     else:
-        return (datetime.datetime.strptime(string, '%Y-%m-%dT%H:%M:%S.%fZ')
+        return (datetime.datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
                     .replace(tzinfo=datetime.timezone.utc))
 
 class HabitRPG(object):
-    def __init__(self, user_id, api_token):
-        self.user_id = user_id
-        self.api_token = api_token
+    def __init__(self, uri=DEFAULT_API_BASE_URI):
+        self.uri = uri
 
-    @classmethod
-    def login_from_file(cls, file_name=DEFAULT_LOGIN_FILE):
-        with open(file_name) as login_file:
-            user_id = login_file.readline().strip()
-            api_token = login_file.readline().strip()
-        return cls(user_id, api_token)
-
-    @staticmethod
-    def _api_request(method, path, headers=None, body=None, decode=True):
+    def api_request(self, method, path, headers=None, body=None, decode=True):
         if body is not None:
             body = json.dumps(body)
             try:
@@ -38,15 +29,11 @@ class HabitRPG(object):
                 headers = {'content-type': 'application/json'}
 
         response = requests.request(method,
-                                    '{}/{}'.format(API_BASE_URI, path),
+                                    '{}/{}'.format(self.uri, path),
                                     headers=headers,
                                     data=body)
 
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError:
-            print(response.json()['err'])
-            raise
+        response.raise_for_status()
 
         if decode:
             content_type = response.headers['content-type']
@@ -61,72 +48,91 @@ class HabitRPG(object):
         else:
             return response
 
-    def _authed_api_request(self, method, path, body=None, decode=True):
-        headers = {'x-api-user': self.user_id,
-                   'x-api-key': self.api_token}
-        return self._api_request(method, path, headers, body, decode)
+    def status(self):
+        return self.api_request('GET', 'status')['status']
 
-    @classmethod
-    def status(cls):
-        return cls._api_request('GET', 'status')['status']
-
-    @classmethod
-    def content(cls, language=None):
+    def content(self, language=None):
         if language is not None:
             body = {'language': language}
         else:
             body = None
-        return cls._api_request('GET', 'content', body=body)
+        return self.api_request('GET', 'content', body=body)
+
+    def user_model(self):
+        return self.api_request('GET', 'content/paths')
+
+class User(object):
+    def __init__(self, hrpg, user_id, api_token):
+        self.hrpg = hrpg
+        self.user_id = user_id
+        self.api_token = api_token
 
     @classmethod
-    def user_model(cls):
-        return cls._api_request('GET', 'content/paths')
+    def from_file(cls, hrpg=None, file_path=DEFAULT_LOGIN_FILE):
+        if hrpg is None:
+            hrpg = HabitRPG()
+        with open(file_path) as login_file:
+            user_id = login_file.readline().strip()
+            api_token = login_file.readline().strip()
+        return cls(hrpg, user_id, api_token)
+
+    def api_request(self, method, path, body=None, decode=True):
+        headers = {'x-api-user': self.user_id,
+                   'x-api-key': self.api_token}
+        return self.hrpg.api_request(method, path, headers, body, decode)
 
     def history(self):
-        return self._authed_api_request('GET', 'export/history')
+        return self.api_request('GET', 'export/history')
+
+    def task_from_api_response(self, api_response):
+        task_type = api_response['type']
+        for task_class in Habit, Daily, Todo, Reward:
+            if task_type == task_class.task_type:
+                return task_class.create_from_api_response(self, api_response)
+        raise KeyError(task_type)  # No match
 
     def tasks(self):
-        return list(map(lambda x: Task.new_from_api_response(self, x),
-                        self._authed_api_request('GET', 'user/tasks')))
+        return list(map(self.task_from_api_response,
+                        self.api_request('GET', 'user/tasks')))
 
 class Task(object):
-    def __init__(self,
-                 habitrpg,
-                 id_code,
-                 text,
-                 notes,
-                 tags,
-                 value,
-                 priority,
-                 date_created,
-                 attribute,
-                 challenge):
-        self.habitrpg = habitrpg
+    def __init__(self, user, id_code):
+        self.user = user
         self.id_code = id_code
-        self.text = text
-        self.notes = notes
-        self.tags = tags
-        self.value = value
-        self.priority = priority
-        self.date_created = date_created
-        self.attribute = attribute
-        self.challenge = challenge
 
-    @staticmethod
-    def new_from_api_response(habitrpg, api_response):
-        for task_class in Habit, Daily, Todo, Reward:
-            if api_response['type'] == task_class.task_type:
-                return task_class.new_from_api_response(habitrpg, api_response)
-        raise KeyError(api_response['type'])  # Nothing matched
+    def fetch(self):
+        task_data = self.user.api_request('GET',
+                                          'user/tasks/{}'.format(self.id_code))
+        self.populate_from_api_response(task_data)
+
+    def populate_from_api_response(self, api_response):
+        # Some elements may be missing from the API response; use `dict.get()`
+        # to pick up those, since that will return `None` if the element isn't
+        # in the dictionary.
+        self.title = api_response['text']
+        self.notes = api_response['notes']
+        self.tags = api_response.get('tags')  # TODO Parse this
+        self.date_created = parse_possible_timestamp(
+                api_response['dateCreated'])
+        self.value = api_response['value']
+        self.priority = api_response['priority']
+        self.attribute = api_response['attribute']
+        self.challenge = api_response.get('challenge')  # TODO Parse this
 
     @classmethod
-    def create(cls, habitrpg, request=None, text=None, notes=None, value=None,
-               priority=None):
+    def create_from_api_response(cls, user, api_response):
+        task = cls(user, api_response['id'])
+        task.populate_from_api_response(api_response)
+        return task
+
+    @classmethod
+    def new(cls, user, request=None, title=None, notes=None, value=None,
+            priority=None):
         if request is None:
             request = {}
         request['type'] = cls.task_type
-        if text is not None:
-            request['text'] = text
+        if title is not None:
+            request['text'] = title
         if notes is not None:
             request['notes'] = notes
         if value is not None:
@@ -134,17 +140,15 @@ class Task(object):
         if priority is not None:
             request['priority'] = priority
 
-        response = habitrpg._authed_api_request('POST', 'user/tasks', request)
-        return cls.new_from_api_response(habitrpg, response)
+        response = user.api_request('POST', 'user/tasks', request)
+        return cls.create_from_api_response(user, response)
 
-    def update(self, request=None, task_type=None, text=None, notes=None,
-               value=None, priority=None):
+    def update(self, request=None, title=None, notes=None, value=None,
+               priority=None):
         if request is None:
             request = {}
-        if task_type is not None:
-            request['type'] = task_type
-        if text is not None:
-            request['text'] = text
+        if title is not None:
+            request['text'] = title
         if notes is not None:
             request['notes'] = notes
         if value is not None:
@@ -152,170 +156,115 @@ class Task(object):
         if priority is not None:
             request['priority'] = priority
 
-        response = self.habitrpg._authed_api_request(
+        response = self.user.api_request(
                 'PUT', 'user/tasks/{}'.format(self.id_code), request)
-        # TODO Update self
+        self.populate_from_api_response(response)
 
-    def score_up(self):
-        return self.habitrpg._authed_api_request('POST',
-                                                 'user/tasks/{}/up'
-                                                     .format(self.id_code))
-    def score_down(self):
-        return self.habitrpg._authed_api_request('POST',
-                                                 'user/tasks/{}/down'
-                                                     .format(self.id_code))
+    def _up(self, update=False):
+        self.user.api_request('POST', 'user/tasks/{}/up'.format(self.id_code))
+        if update:
+            self.fetch()
 
-    @classmethod
-    def get(cls, habitrpg, id_code):
-        return cls.new_from_api_response(
-            habitrpg,
-            habitrpg._authed_api_request('GET',
-                                         'user/tasks/{}'.format(id_code)))
+    def _down(self, update=False):
+        self.user.api_request('POST',
+                              'user/tasks/{}/down'.format(self.id_code))
+        if update:
+            self.fetch()
 
 class CompletableTaskMixin(object):
-    def complete(self):
-        return self.score_up()
-    def uncomplete(self):
-        return self.score_down()
+    def populate_from_api_response(self, api_response):
+        self.completed = api_response['completed']
+        super().populate_from_api_response(api_response)
 
-class Habit(Task):
+    @classmethod
+    def new(cls, user, request=None, completed=None, **kwargs):
+        if request is None:
+            request = {}
+        if completed is not None:
+            request['completed'] = completed
+        return super().new(user, request, **kwargs)
+
+    def update(self, request=None, completed=None, **kwargs):
+        if request is None:
+            request = {}
+        if completed is not None:
+            request['completed'] = completed
+        return super().update(request, **kwargs)
+
+    def complete(self, *args, **kwargs):
+        return self._up(*args, **kwargs)
+    def uncomplete(self):
+        return self._down(*args, **kwargs)
+
+class ChecklistTaskMixin(object):
+    def populate_from_api_response(self, api_response):
+        # Some elements may be missing from the API response; use `dict.get()`
+        # to pick up those, since that will return `None` if the element isn't
+        # in the dictionary.
+        self.checklist = api_response.get('checklist')
+        self.collapse_checklist = api_response.get('collapseChecklist')
+        super().populate_from_api_response(api_response)
+
+class HistoryTaskMixin(object):
+    def populate_from_api_response(self, api_response):
+        self.history = list(map(HistoryStamp.create_from_api_response,
+                                api_response['history']))
+        super().populate_from_api_response(api_response)
+
+class Habit(HistoryTaskMixin, Task):
     task_type = 'habit'
 
-    def __init__(self, can_up, can_down, history, **kwargs):
-        self.can_up = can_up
-        self.can_down = can_down
-        self.history = history
-        super().__init__(**kwargs)
+    def populate_from_api_response(self, api_response):
+        self.can_plus = api_response['up']
+        self.can_minus = api_response['down']
+        super().populate_from_api_response(api_response)
 
     @classmethod
-    def new_from_api_response(cls, habitrpg, api_response):
-        return cls(habitrpg=habitrpg,
-                   can_up=api_response['up'],
-                   can_down=api_response['down'],
-                   history=list(map(HistoryStamp.new_from_api_response,
-                                    api_response['history'])),
-                   id_code=api_response['id'],
-                   text=api_response['text'],
-                   notes=api_response['notes'],
-                   tags=api_response.get('tags'),  # TODO Parse this
-                   value=api_response['value'],
-                   priority=api_response['priority'],
-                   date_created=parse_timestamp(api_response['dateCreated']),
-                   attribute=api_response['attribute'],
-                   challenge=api_response.get('challenge'))  # TODO Parse this
-
-    @classmethod
-    def create(cls, habitrpg, can_up=None, can_down=None, **kwargs):
-        request = {}
+    def new(cls, user, request=None, can_up=None, can_down=None, **kwargs):
+        if request is None:
+            request = {}
         if can_up is not None:
             request['up'] = can_up
         if can_down is not None:
             request['down'] = can_down
-        return super().create(habitrpg, request, **kwargs)
+        return super().new(user, request, **kwargs)
 
-class Daily(Task, CompletableTaskMixin):
+    def update(self, request=None, can_up=None, can_down=None, **kwargs):
+        if request is None:
+            request = {}
+        if can_up is not None:
+            request['up'] = can_up
+        if can_down is not None:
+            request['down'] = can_down
+        return super().update(request, **kwargs)
+
+    def up(self, *args, **kwargs):
+        return self._up(*args, **kwargs)
+    def down(self):
+        return self._down(*args, **kwargs)
+
+class Daily(CompletableTaskMixin, ChecklistTaskMixin, HistoryTaskMixin, Task):
     task_type = 'daily'
+    def populate_from_api_response(self, api_response):
+        self.streak = api_response['streak']
+        self.repeat = api_response['repeat']  # TODO Parse this
+        super().populate_from_api_response(api_response)
 
-    def __init__(self,
-                 completed,
-                 repeat,
-                 checklist,
-                 collapse_checklist,
-                 streak,
-                 history,
-                 **kwargs):
-        self.completed = completed
-        self.repeat = repeat
-        self.checklist = checklist
-        self.collapse_checklist = collapse_checklist
-        self.streak = streak
-        self.history = history
-        super().__init__(**kwargs)
-
-    @classmethod
-    def new_from_api_response(cls, habitrpg, api_response):
-        return cls(habitrpg=habitrpg,
-                   completed=api_response['completed'],
-                   repeat=api_response['repeat'],  # TODO Parse this
-                   checklist=api_response.get('checklist'),  # TODO Parse this
-                   collapse_checklist=api_response.get('collapseChecklist'),
-                   streak=api_response['streak'],
-                   history=list(map(HistoryStamp.new_from_api_response,
-                                    api_response['history'])),
-                   id_code=api_response['id'],
-                   text=api_response['text'],
-                   notes=api_response['notes'],
-                   tags=api_response.get('tags'),  # TODO Parse this
-                   value=api_response['value'],
-                   priority=api_response['priority'],
-                   date_created=parse_timestamp(api_response['dateCreated']),
-                   attribute=api_response['attribute'],
-                   challenge=api_response.get('challenge'))  # TODO Parse this
-
-    @classmethod
-    def create(cls, habitrpg, completed=None, **kwargs):
-        request = {}
-        if completed is not None:
-            request['completed'] = completed
-        return super().create(habitrpg, request, **kwargs)
-
-class Todo(Task, CompletableTaskMixin):
+class Todo(CompletableTaskMixin, ChecklistTaskMixin, Task):
     task_type = 'todo'
-
-    def __init__(self,
-                 completed,
-                 due_date,
-                 date_completed,
-                 checklist,
-                 collapse_checklist,
-                 **kwargs):
-        self.completed = completed
-        self.due_date = due_date
-        self.date_completed = date_completed
-        self.collapse_checklist = collapse_checklist
-        super().__init__(**kwargs)
-
-    @classmethod
-    def new_from_api_response(cls, habitrpg, api_response):
-        return cls(
-            habitrpg=habitrpg,
-            completed=api_response['completed'],
-            due_date=parse_timestamp(api_response.get('date')),
-            date_completed=parse_timestamp(api_response.get('dateCompleted')),
-            checklist=api_response.get('checklist'),  # TODO Parse this
-            collapse_checklist=api_response.get('collapseChecklist'),
-            id_code=api_response['id'],
-            text=api_response['text'],
-            notes=api_response['notes'],
-            tags=api_response.get('tags'),  # TODO Parse this
-            value=api_response['value'],
-            priority=api_response['priority'],
-            date_created=parse_timestamp(api_response['dateCreated']),
-            attribute=api_response['attribute'],
-            challenge=api_response.get('challenge'))  # TODO Parse this
-
-    @classmethod
-    def create(cls, habitrpg, completed=None, **kwargs):
-        request = {}
-        if completed is not None:
-            request['completed'] = completed
-        return super().create(habitrpg, request, **kwargs)
+    def populate_from_api_response(self, api_response):
+        # Some elements may be missing from the API response; use `dict.get()`
+        # to pick up those, since that will return `None` if the element isn't
+        # in the dictionary.
+        self.due_date = parse_possible_timestamp(api_response.get('date'))
+        self.date_completed = parse_possible_timestamp(
+                api_response.get('dateCompleted'))
+        super().populate_from_api_response(api_response)
 
 class Reward(Task):
     task_type = 'reward'
-
-    @classmethod
-    def new_from_api_response(cls, habitrpg, api_response):
-        return cls(habitrpg=habitrpg,
-                   id_code=api_response['id'],
-                   text=api_response['text'],
-                   notes=api_response['notes'],
-                   tags=api_response.get('tags'),  # TODO Parse this
-                   value=api_response['value'],
-                   priority=api_response['priority'],
-                   date_created=parse_timestamp(api_response['dateCreated']),
-                   attribute=api_response['attribute'],
-                   challenge=api_response.get('challenge'))  # TODO Parse this
+    def buy(self, *args, **kwargs):
+        return self._up(*args, **kwargs)
 
 class HistoryStamp(object):
     def __init__(self, timestamp, value):
@@ -323,7 +272,7 @@ class HistoryStamp(object):
         self.value = value
 
     @classmethod
-    def new_from_api_response(cls, api_response):
+    def create_from_api_response(cls, api_response):
         return cls(
             datetime.datetime.fromtimestamp(api_response['date'] / 1000),
             api_response['value'])

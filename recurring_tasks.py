@@ -16,8 +16,9 @@ TZ = timezone('Europe/London')
 # Not supposed to be used as part of the main script; this is here as a
 # convenience function until the code can cope without needing tasks to be
 # bootstrapped.
-def create_recurring_task(text, filename, min, max, notes=None):
-    task = habitrpg.Todo.create(habitrpg.HabitRPG.login_from_file(), text=text, notes=notes)
+def create_recurring_task(title, filename, min, max, notes=None):
+    task = habitrpg.Todo.new(habitrpg.HabitRPG.login_from_file(),
+                             title=title, notes=notes)
     task_data = {'current': {'created': task.date_created,
                              'id': task.id_code},
                  'next': None,
@@ -30,7 +31,7 @@ def create_recurring_task(text, filename, min, max, notes=None):
         yaml.safe_dump(task_data, task_file, default_flow_style=False)
 
 if __name__ == '__main__':
-    hrpg = habitrpg.HabitRPG.login_from_file()
+    user = habitrpg.User.from_file()
     for filename in os.listdir(TASK_DIRECTORY):
         if filename.startswith('.'):  # Skip hidden files like Vim swap files
             continue
@@ -73,7 +74,8 @@ if __name__ == '__main__':
             task_data['notes'] = None
 
         if task_data['current'] is not None:
-            task = habitrpg.Todo.get(hrpg, task_data['current']['id'])
+            task = habitrpg.Todo(user, task_data['current']['id'])
+            task.fetch()
             if task.completed:
                 task_data['previous'] = task_data['current']
                 task_data['previous']['completed'] = task.date_completed
@@ -86,8 +88,8 @@ if __name__ == '__main__':
 
         if (task_data['next'] is not None and
                 datetime.datetime.now(TZ) >= task_data['next']):
-            task = habitrpg.Todo.create(hrpg, text=task_data['text'],
-                                        notes=task_data['notes'])
+            task = habitrpg.Todo.new(user, title=task_data['text'],
+                                     notes=task_data['notes'])
             task_data['current'] = {'id': task.id_code,
                                     'created': task.date_created}
             task_data['next'] = None
