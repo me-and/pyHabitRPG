@@ -437,3 +437,19 @@ class Tag(object):
                 raise ValueError('Unexpected challenge value {!r}'
                         .format(challenge))
         self.populated = True
+
+    def fetch(self, force_update=False):
+        # There's no good way to just fetch this tag, so make sure `self.user`
+        # has the tag list and populate this instance's data based on that tag
+        # list.
+        if force_update or not self.user.tags_populated:
+            self.user.fetch()
+        for tag in self.user.tags:
+            if self.id_code == tag.id_code:
+                self.name = tag.name
+                self.challenge = tag.challenge
+                break
+        else:
+            raise RuntimeError('Tag with ID {!r} not found'
+                    .format(self.id_code))
+        self.populated = True
