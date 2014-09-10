@@ -341,6 +341,21 @@ class ChecklistTaskMixin(object):
                                              'completed': completed})
         return super().update(request=request, **kwargs)
 
+    @classmethod
+    def create_from_api_response(cls, user, api_response):
+        task = cls(user, api_response['id'])
+        if 'checklist' in api_response:
+            for check_item in api_response['checklist']:
+                if 'id' not in check_item:
+                    # There's a checklist item that doesn't have an ID.  This
+                    # appears to happen on newly created tasks, but re-fetching
+                    # the task rather than relying on the original API request
+                    # will work fine.
+                    task.fetch()
+                    return task
+        task.populate_from_api_response(api_response)
+        return task
+
 class HistoryTaskMixin(object):
     def populate_from_api_response(self, api_response):
         self.history = [HistoryStamp.create_from_api_response(hist_item) for
