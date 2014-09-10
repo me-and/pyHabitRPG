@@ -428,7 +428,7 @@ class Tag(object):
         return tag
 
     def populate_from_user_api_response(self, api_response):
-        self.name = api_response['name']
+        self.name = api_response.get('name')  # May not exist!
         try:
             challenge = api_response['challenge']
         except KeyError:  # Not on response so no challenge
