@@ -12,12 +12,12 @@ TZ = timezone('Europe/London')
 
 if __name__ == '__main__':
     user = habitrpg.User.from_file()
-    tasks = user.tasks()
+    user.fetch_tasks()
 
     reduce_task = None
     incomplete_todos = 0
-    for task in tasks:
-        if isinstance(task, habitrpg.Todo) and not task.completed:
+    for task in user.todos:
+        if not task.completed:
             incomplete_todos += 1
         if task.title == TASK_NAME and not task.completed:
             reduce_task = task

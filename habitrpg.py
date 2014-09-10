@@ -87,6 +87,7 @@ class User(object):
         self.hrpg = hrpg
         self.user_id = user_id
         self.api_token = api_token
+        self.tasks_populated = False
 
     def __eq__(self, other):
         try:
@@ -132,9 +133,25 @@ class User(object):
                 return task_class.create_from_api_response(self, api_response)
         raise KeyError(task_type)  # No match
 
-    def tasks(self):
-        return [self.task_from_api_response(task_data) for task_data in
+    def fetch_tasks(self):
+        tasks = [self.task_from_api_response(task_data) for task_data in
                 self.api_request('GET', 'user/tasks')]
+        self.habits = []
+        self.dailies = []
+        self.todos = []
+        self.rewards = []
+        for task in tasks:
+            if isinstance(task, Habit):
+                self.habits.append(task)
+            elif isinstance(task, Daily):
+                self.dailies.append(task)
+            elif isinstance(task, Todo):
+                self.todos.append(task)
+            elif isinstance(task, Reward):
+                self.rewards.append(task)
+            else:
+                raise ValueError('Unexpected task {!r}'.format(task))
+        self.tasks_populated = True
 
 class Task(object):
     def __init__(self, user, id_code):
