@@ -320,6 +320,27 @@ class ChecklistTaskMixin(object):
         self.collapse_checklist = api_response.get('collapseChecklist')
         super().populate_from_api_response(api_response)
 
+    @classmethod
+    def new(cls, user, *, request=None, checklist=None, **kwargs):
+        if request is None:
+            request = {}
+        if checklist is not None:
+            request['checklist'] = []
+            for text, completed in checklist:
+                request['checklist'].append({'text': text,
+                                             'completed': completed})
+        return super().new(user, request=request, **kwargs)
+
+    def update(self, request=None, checklist=None, **kwargs):
+        if request is None:
+            request = {}
+        if checklist is not None:
+            request['checklist'] = []
+            for text, completed in checklist:
+                request['checklist'].append({'text': text,
+                                             'completed': completed})
+        return super().update(request=request, **kwargs)
+
 class HistoryTaskMixin(object):
     def populate_from_api_response(self, api_response):
         self.history = [HistoryStamp.create_from_api_response(hist_item) for
