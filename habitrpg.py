@@ -227,7 +227,7 @@ class Task(object):
         return task
 
     @classmethod
-    def new(cls, user, request=None, title=None, notes=None, value=None,
+    def new(cls, user, *, request=None, title=None, notes=None, value=None,
             priority=None):
         if request is None:
             request = {}
@@ -278,12 +278,12 @@ class CompletableTaskMixin(object):
         super().populate_from_api_response(api_response)
 
     @classmethod
-    def new(cls, user, request=None, completed=None, **kwargs):
+    def new(cls, user, *, request=None, completed=None, **kwargs):
         if request is None:
             request = {}
         if completed is not None:
             request['completed'] = completed
-        return super().new(user, request, **kwargs)
+        return super().new(user, request=request, **kwargs)
 
     def update(self, request=None, completed=None, **kwargs):
         if request is None:
@@ -321,14 +321,14 @@ class Habit(HistoryTaskMixin, Task):
         super().populate_from_api_response(api_response)
 
     @classmethod
-    def new(cls, user, request=None, can_up=None, can_down=None, **kwargs):
+    def new(cls, user, *, request=None, can_up=None, can_down=None, **kwargs):
         if request is None:
             request = {}
         if can_up is not None:
             request['up'] = can_up
         if can_down is not None:
             request['down'] = can_down
-        return super().new(user, request, **kwargs)
+        return super().new(user, request=request, **kwargs)
 
     def update(self, request=None, can_up=None, can_down=None, **kwargs):
         if request is None:
