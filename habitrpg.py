@@ -126,6 +126,18 @@ class User(object):
     def history(self):
         return self.api_request('GET', 'export/history')
 
+    def fetch(self):
+        response = self.api_request('GET', 'user')
+        self.habits = [Habit.create_from_api_response(self, task_data) for
+                task_data in response['habits']]
+        self.dailies = [Daily.create_from_api_response(self, task_data) for
+                task_data in response['dailys']]
+        self.todos = [Todo.create_from_api_response(self, task_data) for
+                task_data in response['todos']]
+        self.rewards = [Reward.create_from_api_response(self, task_data) for
+                task_data in response['rewards']]
+        self.tasks_populated = True
+
     def task_from_api_response(self, api_response):
         task_type = api_response['type']
         for task_class in Habit, Daily, Todo, Reward:
