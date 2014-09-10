@@ -25,8 +25,6 @@ class HabitRPG(object):
             return self.uri == other.uri
         except AttributeError:
             return NotImplemented
-    def __ne__(self, other):
-        return not self == other
 
     def __hash__(self):
         return hash(self.uri)
@@ -96,8 +94,6 @@ class User(object):
                     and self.api_token == other.api_token)
         except AttributeError:
             return NotImplemented
-    def __ne__(self, other):
-        return not self == other
 
     def __hash__(self):
         return hash((self.hrpg, self.user_id, self.api_token))
@@ -185,8 +181,6 @@ class Task(object):
             return self.user == other.user and self.id_code == other.id_code
         except AttributeError:
             return NotImplemented
-    def __ne__(self, other):
-        return not self == other
 
     def __hash__(self):
         return hash((self.user, self.id_code))
@@ -387,8 +381,6 @@ class HistoryStamp(object):
                     self.value == other.value)
         except AttributeError:
             return NotImplemented
-    def __ne__(self, other):
-        return not self == other
 
     def __hash__(self):
         return hash((self.timestamp, self.value))
@@ -415,8 +407,6 @@ class Tag(object):
             return self.user == other.user and self.id_code == other.id_code
         except AttributeError:
             return False
-    def __ne__(self, other):
-        return not self == other
 
     def __hash__(self):
         return hash((self.user, self.id_code))
