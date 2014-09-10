@@ -160,7 +160,7 @@ class Task(object):
                                                     self.title)
         else:
             return '<{} id {!r}>'.format(self.__class__.__name__,
-                                         self.title)
+                                         self.id_code)
 
     def fetch(self):
         task_data = self.user.api_request('GET',
