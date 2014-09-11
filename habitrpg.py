@@ -247,7 +247,7 @@ class Task(UserPlusIDMixin):
         return cls.create_from_api_response(user, response)
 
     def update(self, request=None, title=None, notes=None, value=None,
-               priority=None):
+               priority=None, tags=None):
         if request is None:
             request = {}
         if title is not None:
@@ -258,6 +258,10 @@ class Task(UserPlusIDMixin):
             request['value'] = value
         if priority is not None:
             request['priority'] = priority
+        if tags is not None:
+            request['tags'] = {}
+            for tag in tags:
+                request['tags'][tag.id_code] = True
 
         response = self.user.api_request(
                 'PUT', 'user/tasks/{}'.format(self.id_code), request)
