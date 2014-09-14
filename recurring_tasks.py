@@ -85,9 +85,12 @@ if __name__ == '__main__':
         try:
             task_data['previous']['created'] = (task_data['previous']
                     ['created'].replace(tzinfo=datetime.timezone.utc))
+        except TypeError:  # task_data['previous'] == None
+            pass
+        try:
             task_data['previous']['completed'] = (task_data['previous']
                     ['completed'].replace(tzinfo=datetime.timezone.utc))
-        except TypeError:  # task_data['previous'] == None
+        except (TypeError, KeyError):  # task_data['previous'] == None
             pass
 
         # Add a notes field if there isn't one already -- needed for back
