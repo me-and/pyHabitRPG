@@ -32,7 +32,7 @@ def create_recurring_task(title, filename, min, max,
                              'id': task.id_code},
                  'next': None,
                  'previous': None,
-                 'repeat': {'min': min, 'max': max},
+                 'repeat': {'on deletion': None, 'on completion': {'min': min, 'max': max}},
                  'title': title,
                  'notes': notes}
     if checklist is None:
@@ -113,18 +113,37 @@ if __name__ == '__main__':
         except KeyError:
             task_data['checklist'] = ()
 
+        # Convert tasks with only recurrance to also handle other actions.
+        # Back compatibility.
+        if 'min' in task_data['repeat']:
+            task_data['repeat'] = {'on completion': {'min': task_data['repeat']['min'],
+                                                     'max': task_data['repeat']['max']},
+                                   'on deletion': None}
+
         if task_data['current'] is not None:
             task = habitrpg.Todo(user, task_data['current']['id'])
-            task.fetch()
-            if task.completed:
+            try:
+                task.fetch()
+            except habitrpg.requests.exceptions.HTTPError as ex:
+                if ex.response.status_code != 404:
+                    raise ex
                 task_data['previous'] = task_data['current']
-                task_data['previous']['completed'] = task.date_completed
                 task_data['current'] = None
-                min_seconds = task_data['repeat']['min'] * SECONDS_PER_DAY
-                max_seconds = task_data['repeat']['max'] * SECONDS_PER_DAY
-                task_data['next'] = (task.date_completed +
+                min_seconds = task_data['repeat']['on deletion']['min'] * SECONDS_PER_DAY
+                max_seconds = task_data['repeat']['on deletion']['max'] * SECONDS_PER_DAY
+                task_data['next'] = (datetime.datetime.now(TZ) +
                         datetime.timedelta(seconds=randint(min_seconds,
                                                            max_seconds)))
+            else:
+                if task.completed:
+                    task_data['previous'] = task_data['current']
+                    task_data['previous']['completed'] = task.date_completed
+                    task_data['current'] = None
+                    min_seconds = task_data['repeat']['on completion']['min'] * SECONDS_PER_DAY
+                    max_seconds = task_data['repeat']['on completion']['max'] * SECONDS_PER_DAY
+                    task_data['next'] = (task.date_completed +
+                            datetime.timedelta(seconds=randint(min_seconds,
+                                                               max_seconds)))
 
         if (task_data['next'] is not None and
                 datetime.datetime.now(TZ) >= task_data['next']):
