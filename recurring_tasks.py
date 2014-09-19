@@ -17,8 +17,8 @@ RECURRING_TAG_NAME = 'recurring'
 # Not supposed to be used as part of the main script; this is here as a
 # convenience function until the code can cope without needing tasks to be
 # bootstrapped.
-def create_recurring_task(title, filename, min, max,
-                          notes=None, checklist=None):
+def create_recurring_task(title, filename, comp_min, comp_max, del_min,
+                          del_max, notes=None, checklist=None):
     user = habitrpg.User.from_file()
     recurring_tag = get_recurring_tag(user)
     if checklist is not None:
@@ -32,7 +32,7 @@ def create_recurring_task(title, filename, min, max,
                              'id': task.id_code},
                  'next': None,
                  'previous': None,
-                 'repeat': {'on deletion': None, 'on completion': {'min': min, 'max': max}},
+                 'repeat': {'on deletion': {'min': del_min, 'max': del_max}, 'on completion': {'min': comp_min, 'max': comp_max}},
                  'title': title,
                  'notes': notes}
     if checklist is None:
