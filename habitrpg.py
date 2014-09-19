@@ -407,6 +407,30 @@ class Daily(CompletableTaskMixin, ChecklistTaskMixin, HistoryTaskMixin, Task):
 
 class Todo(CompletableTaskMixin, ChecklistTaskMixin, Task):
     task_type = 'todo'
+
+    @classmethod
+    def new(cls, user, *, request=None, due_date=None, **kwargs):
+        if request is None:
+            request = {}
+        if due_date is not None:
+            # TODO: Check the behaviour here emulates the website's behaviour
+            # with regard to timezones.
+            request['date'] = due_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        return super().new(user, request=request, **kwargs)
+
+    def update(self, request=None, due_date=None, **kwargs):
+        if request is None:
+            request = {}
+        if due_date is not None:
+            # TODO: Check the behaviour here emulates the website's behaviour
+            # with regard to timezones.
+            #
+            # TODO: This code is probably substantive enough to commonalize it
+            # with the code from Todo.new().  Although that probably applies to
+            # all the new/update methods, really.
+            request['date'] = due_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        return super().update(request, **kwargs)
+
     def populate_from_api_response(self, api_response):
         # Some elements may be missing from the API response; use `dict.get()`
         # to pick up those, since that will return `None` if the element isn't
