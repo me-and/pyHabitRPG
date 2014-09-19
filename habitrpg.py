@@ -409,16 +409,21 @@ class Todo(CompletableTaskMixin, ChecklistTaskMixin, Task):
     task_type = 'todo'
 
     @classmethod
-    def new(cls, user, *, request=None, due_date=None, **kwargs):
+    def new(cls, user, *, request=None, due_date=None, date_completed=None,
+            **kwargs):
         if request is None:
             request = {}
         if due_date is not None:
             # TODO: Check the behaviour here emulates the website's behaviour
             # with regard to timezones.
             request['date'] = due_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        if date_completed is not None:
+            request['dateCompleted'] = (
+                date_completed.strftime('%Y-%m-%dT%H:%M:%S.%fZ'))
         return super().new(user, request=request, **kwargs)
 
-    def update(self, request=None, due_date=None, **kwargs):
+    def update(self, request=None, due_date=None, date_completed=None,
+               **kwargs):
         if request is None:
             request = {}
         if due_date is not None:
@@ -429,6 +434,9 @@ class Todo(CompletableTaskMixin, ChecklistTaskMixin, Task):
             # with the code from Todo.new().  Although that probably applies to
             # all the new/update methods, really.
             request['date'] = due_date.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        if date_completed is not None:
+            request['dateCompleted'] = (
+                date_completed.strftime('%Y-%m-%dT%H:%M:%S.%fZ'))
         return super().update(request, **kwargs)
 
     def populate_from_api_response(self, api_response):
