@@ -116,12 +116,15 @@ if __name__ == '__main__':
         except KeyError:
             task_data['checklist'] = ()
 
-        # Convert tasks with only recurrance to also handle other actions.
-        # Back compatibility.
+        # Convert tasks with only recurrance to also handle other actions.  For
+        # lack of a better option, just use the same values as for when
+        # completing a task; the user can update them later.  Needed for back
+        # compatibility.
         if 'min' in task_data['repeat']:
             task_data['repeat'] = {'on completion': {'min': task_data['repeat']['min'],
                                                      'max': task_data['repeat']['max']},
-                                   'on deletion': None}
+                                   'on deletion': {'min': task_data['repeat']['min'],
+                                                   'max': task_data['repeat']['max']}}
 
         if task_data['current'] is not None:
             task = habitrpg.Todo(user, task_data['current']['id'])
