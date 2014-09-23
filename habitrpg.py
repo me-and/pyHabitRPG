@@ -580,3 +580,12 @@ class Group(UserPlusIDMixin):
 class Party(Group):
     def __init__(self, user):
         super().__init__(user=user, id_code='party')
+
+class ChatMessage(UserPlusIDMixin):
+    def __init__(self, user, group, id_code):
+        self.group = group
+        supe().__init__(user=user, id_code=id_code)
+
+    def delete(self):
+        self.user.api_request('DELETE',
+                'groups/{}/chat/{}'.format(self.group.id_code, self.id_code))
