@@ -571,3 +571,12 @@ class CheckItem(UserPlusIDMixin):
         self.text = api_response['text']
         self.completed = api_response['completed']
         self.populated = True
+
+class Group(UserPlusIDMixin):
+    def send_chat(self, message):
+        self.user.api_request('POST', 'groups/{}/chat'.format(self.id_code),
+                              params={'message': message})
+
+class Party(Group):
+    def __init__(self, user):
+        super().__init__(user=user, id_code='party')
