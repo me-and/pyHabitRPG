@@ -4,7 +4,7 @@ import datetime
 from csv import DictReader
 from io import StringIO
 
-import requests
+from requests import Session
 
 DEFAULT_API_BASE_URI = 'https://habitrpg.com/api/v2'
 DEFAULT_LOGIN_FILE = os.path.expanduser(os.path.join('~', '.habitrpg'))
@@ -19,6 +19,7 @@ def parse_possible_timestamp(timestamp):
 class HabitRPG(object):
     def __init__(self, uri=DEFAULT_API_BASE_URI):
         self.uri = uri
+        self.session = Session()
 
     def __eq__(self, other):
         try:
@@ -44,10 +45,10 @@ class HabitRPG(object):
             else:
                 headers['content-type'] = 'application/json'
 
-        response = requests.request(method,
-                                    '{}/{}'.format(self.uri, path),
-                                    headers=headers,
-                                    data=body)
+        response = self.session.request(method,
+                                        '{}/{}'.format(self.uri, path),
+                                        headers=headers,
+                                        data=body)
 
         if raise_status:
             response.raise_for_status()
