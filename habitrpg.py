@@ -54,7 +54,7 @@ class HabitRPG(object):
         if raise_status:
             response.raise_for_status()
 
-        if decode:
+        if decode and response.status_code != 204:
             content_type = response.headers['content-type']
             if content_type.startswith('application/json;'):
                 return response.json()
