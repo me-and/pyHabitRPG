@@ -4,7 +4,7 @@ import datetime
 from csv import DictReader
 from io import StringIO
 
-from requests import Session
+import requests
 
 DEFAULT_API_BASE_URI = 'https://habitrpg.com/api/v2'
 DEFAULT_LOGIN_FILE = os.path.expanduser(os.path.join('~', '.habitrpg'))
@@ -19,7 +19,7 @@ def parse_possible_timestamp(timestamp):
 class HabitRPG(object):
     def __init__(self, uri=DEFAULT_API_BASE_URI):
         self.uri = uri
-        self.session = Session()
+        self.session = requests.Session()
 
     def __eq__(self, other):
         try:
