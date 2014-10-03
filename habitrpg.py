@@ -1,3 +1,51 @@
+"""
+Interface with the HabitRPG API.
+================================
+
+This module aims to provide a partial implementation of the [HabitRPG API][] in
+a Pythonic fashion.
+
+As an example of how easy the module is to use, a quick fix for the ["Dailies
+Remain Checked"][DRC] bug would be thus:
+
+    >>> import habitrpg
+    >>> user = habitrpg.User(<user_id>, <api_token>)
+    >>> user.fetch_tasks()
+    >>> for daily in user.dailies:
+    ...     daily.update(completed=False)
+
+[HabitRPG API]: https://habitrpg.com/static/api
+[DRC]: http://habitrpg.wikia.com/wiki/Known_Bugs#Dailies_Remain_Checked
+
+Constants
+---------
+
+-   DEFAULT_API_BASE_URI: The URI of the standard public HabitRPG API.
+-   DEFAULT_LOGIN_FILE: The default location for storing API login details.
+
+Functions
+---------
+
+-   create_login_file: Create a file containing login information.
+-   parse_possible_timestamp: Parse a timestamp string from an API response.
+
+Classes
+-------
+
+-   HabitRPG: A HabitRPG site, e.g. the main site or the beta site.
+-   User: A specific user login.
+-   Habit: An entry from the HabitRPG "Habits" list.
+-   Daily: An entry from the HabitRPG "Dailies" list.
+-   Todo: An entry from the HabitRPG "To-Dos" list.
+-   Reward: A custom entry from the HabitRPG "Rewards" list.
+-   HistoryStamp: An entry from a task's history list.
+-   Tag: A task tag.
+-   CheckItem: An entry in a task's checklist.
+-   Group: A guild.
+-   Party: The character's party.
+-   ChatMessage: A message in a guild/party chat log.
+
+"""
 import json
 import os.path
 import datetime
