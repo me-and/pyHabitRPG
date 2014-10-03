@@ -9,6 +9,10 @@ import requests
 DEFAULT_API_BASE_URI = 'https://habitrpg.com/api/v2'
 DEFAULT_LOGIN_FILE = os.path.expanduser(os.path.join('~', '.habitrpg'))
 
+def create_login_file(user_id, api_token, file_path=DEFAULT_LOGIN_FILE):
+    with open(file_path, 'w') as login_file:
+        login_file.write('{}\n{}\n'.format(user_id, api_token))
+
 def parse_possible_timestamp(timestamp):
     if timestamp is None:
         return None
