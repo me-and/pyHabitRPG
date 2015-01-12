@@ -9,16 +9,19 @@ from pytz import timezone
 
 import habitrpg
 
-SECONDS_PER_DAY = 60 * 60 * 24
+SECONDS_PER_HOUR = 60 * 60
+SECONDS_PER_DAY = SECONDS_PER_HOUR * 24
 TASK_DIRECTORY = os.path.expanduser(os.path.join('~', '.habitrpg_tasks'))
 TZ = timezone('Europe/London')
 RECURRING_TAG_NAME = 'recurring'
+
+UNIT_MULTIPLIER = {'hours': SECONDS_PER_HOUR, 'days': SECONDS_PER_DAY}
 
 # Not supposed to be used as part of the main script; this is here as a
 # convenience function until the code can cope without needing tasks to be
 # bootstrapped.
 def create_recurring_task(title, filename, comp_min, comp_max, del_min,
-                          del_max, notes=None, checklist=None):
+                          del_max, notes=None, checklist=None, units='days'):
     user = habitrpg.User.from_file()
     recurring_tag = get_recurring_tag(user)
     if checklist is not None:
@@ -34,7 +37,8 @@ def create_recurring_task(title, filename, comp_min, comp_max, del_min,
                  'previous': None,
                  'repeat': {'on deletion': {'min': del_min, 'max': del_max}, 'on completion': {'min': comp_min, 'max': comp_max}},
                  'title': title,
-                 'notes': notes}
+                 'notes': notes,
+                 'unit multiplier': UNIT_MULTIPLIER[units]}
     if checklist is None:
         task_data['checklist'] = []
     else:
@@ -126,6 +130,13 @@ if __name__ == '__main__':
                                    'on deletion': {'min': task_data['repeat']['min'],
                                                    'max': task_data['repeat']['max']}}
 
+        # Add a units field if there isn't one already -- needed for back
+        # compatibility.
+        try:
+            task_data['unit multiplier']
+        except KeyError:
+            task_data['unit multiplier'] = UNIT_MULTIPLIER['days']
+
         if task_data['current'] is not None:
             task = habitrpg.Todo(user, task_data['current']['id'])
             try:
@@ -135,8 +146,8 @@ if __name__ == '__main__':
                     raise ex
                 task_data['previous'] = task_data['current']
                 task_data['current'] = None
-                min_seconds = task_data['repeat']['on deletion']['min'] * SECONDS_PER_DAY
-                max_seconds = task_data['repeat']['on deletion']['max'] * SECONDS_PER_DAY
+                min_seconds = task_data['repeat']['on deletion']['min'] * task_data['unit multiplier']
+                max_seconds = task_data['repeat']['on deletion']['max'] * task_data['unit multiplier']
                 task_data['next'] = (datetime.datetime.now(TZ) +
                         datetime.timedelta(seconds=randint(min_seconds,
                                                            max_seconds)))
@@ -145,8 +156,8 @@ if __name__ == '__main__':
                     task_data['previous'] = task_data['current']
                     task_data['previous']['completed'] = task.date_completed
                     task_data['current'] = None
-                    min_seconds = task_data['repeat']['on completion']['min'] * SECONDS_PER_DAY
-                    max_seconds = task_data['repeat']['on completion']['max'] * SECONDS_PER_DAY
+                    min_seconds = task_data['repeat']['on completion']['min'] * task_data['unit multiplier']
+                    max_seconds = task_data['repeat']['on completion']['max'] * task_data['unit multiplier']
                     task_data['next'] = (task.date_completed +
                             datetime.timedelta(seconds=randint(min_seconds,
                                                                max_seconds)))
