@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from datetime import datetime
+import sys
 
 from pytz import timezone
 
@@ -21,6 +22,9 @@ if __name__ == '__main__':
             incomplete_todos += 1
         if task.title == TASK_NAME and not task.completed:
             reduce_task = task
+
+    if sys.stdout.isatty():
+        print('Todos: {}'.format(incomplete_todos))
 
     notes = '{:%A %I:%M %p}: {} tasks'.format(datetime.now(TZ),
                                               incomplete_todos)
