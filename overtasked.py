@@ -7,7 +7,7 @@ from pytz import timezone
 import habitrpg
 
 MAX_TODOS = 20
-CLEAR_THRESHOLD = 15
+CLEAR_THRESHOLD = 18
 TASK_NAME = 'Cut the todo list down to ≤{} tasks'.format(CLEAR_THRESHOLD)
 TZ = timezone('Europe/London')
 
