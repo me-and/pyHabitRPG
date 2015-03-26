@@ -57,16 +57,19 @@ import requests
 DEFAULT_API_BASE_URI = 'https://habitrpg.com/api/v2'
 DEFAULT_LOGIN_FILE = os.path.expanduser(os.path.join('~', '.habitrpg'))
 
+
 def create_login_file(user_id, api_token, file_path=DEFAULT_LOGIN_FILE):
     with open(file_path, 'w') as login_file:
         login_file.write('{}\n{}\n'.format(user_id, api_token))
+
 
 def parse_possible_timestamp(timestamp):
     if timestamp is None:
         return None
     else:
         return (datetime.datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
-                    .replace(tzinfo=datetime.timezone.utc))
+                .replace(tzinfo=datetime.timezone.utc))
+
 
 class HabitRPG(object):
     def __init__(self, uri=DEFAULT_API_BASE_URI):
@@ -117,7 +120,7 @@ class HabitRPG(object):
                 return response.text
             else:
                 raise RuntimeError('Content type "{}" unrecognized'
-                        .format(content_type))
+                                   .format(content_type))
         else:
             return response
 
@@ -134,6 +137,7 @@ class HabitRPG(object):
     def user_model(self):
         return self.api_request('GET', 'content/paths')
 
+
 class User(object):
     def __init__(self, hrpg, user_id, api_token):
         self.hrpg = hrpg
@@ -144,8 +148,9 @@ class User(object):
 
     def __eq__(self, other):
         try:
-            return (self.hrpg == other.hrpg and self.user_id == other.user_id
-                    and self.api_token == other.api_token)
+            return (self.hrpg == other.hrpg and
+                    self.user_id == other.user_id and
+                    self.api_token == other.api_token)
         except AttributeError:
             return NotImplemented
 
@@ -181,20 +186,20 @@ class User(object):
         response = self.api_request('GET', 'user')
 
         self.habits = [Habit.create_from_api_response(self, task_data) for
-                task_data in response['habits']]
+                       task_data in response['habits']]
         self.dailies = [Daily.create_from_api_response(self, task_data) for
-                task_data in response['dailys']]
+                        task_data in response['dailys']]
         self.todos = [Todo.create_from_api_response(self, task_data) for
-                task_data in response['todos']]
+                      task_data in response['todos']]
         self.rewards = [Reward.create_from_api_response(self, task_data) for
-                task_data in response['rewards']]
+                        task_data in response['rewards']]
         self.tasks_populated = True
 
         self.populate_tags_from_api_response(response['tags'])
 
     def populate_tags_from_api_response(self, api_response):
         self.tags = [Tag.create_from_api_response(self, tag_data) for
-                tag_data in api_response]
+                     tag_data in api_response]
         self.tags_populated = True
 
     def task_from_api_response(self, api_response):
@@ -206,7 +211,7 @@ class User(object):
 
     def fetch_tasks(self):
         tasks = [self.task_from_api_response(task_data) for task_data in
-                self.api_request('GET', 'user/tasks')]
+                 self.api_request('GET', 'user/tasks')]
         self.habits = []
         self.dailies = []
         self.todos = []
@@ -223,6 +228,7 @@ class User(object):
             else:
                 raise ValueError('Unexpected task {!r}'.format(task))
         self.tasks_populated = True
+
 
 class UserPlusIDMixin(object):
     def __init__(self, user, id_code):
@@ -248,6 +254,7 @@ class UserPlusIDMixin(object):
         inst = cls(user, api_response['id'])
         inst.populate_from_api_response(api_response)
         return inst
+
 
 class Task(UserPlusIDMixin):
     def __repr__(self):
@@ -337,6 +344,7 @@ class Task(UserPlusIDMixin):
         if update:
             self.fetch()
 
+
 class CompletableTaskMixin(object):
     def populate_from_api_response(self, api_response):
         self.completed = api_response['completed']
@@ -359,8 +367,10 @@ class CompletableTaskMixin(object):
 
     def complete(self, *args, **kwargs):
         return self._up(*args, **kwargs)
+
     def uncomplete(self):
         return self._down(*args, **kwargs)
+
 
 class ChecklistTaskMixin(object):
     def populate_from_api_response(self, api_response):
@@ -372,7 +382,7 @@ class ChecklistTaskMixin(object):
             self.checklist = [CheckItem.create_from_api_response(self.user,
                                                                  self,
                                                                  check_data)
-                    for check_data in api_response['checklist']]
+                              for check_data in api_response['checklist']]
         else:
             self.checklist = []
         self.collapse_checklist = api_response.get('collapseChecklist')
@@ -414,11 +424,13 @@ class ChecklistTaskMixin(object):
         task.populate_from_api_response(api_response)
         return task
 
+
 class HistoryTaskMixin(object):
     def populate_from_api_response(self, api_response):
         self.history = [HistoryStamp.create_from_api_response(hist_item) for
-                hist_item in api_response['history']]
+                        hist_item in api_response['history']]
         super().populate_from_api_response(api_response)
+
 
 class Habit(HistoryTaskMixin, Task):
     task_type = 'habit'
@@ -449,15 +461,19 @@ class Habit(HistoryTaskMixin, Task):
 
     def up(self, *args, **kwargs):
         return self._up(*args, **kwargs)
+
     def down(self):
         return self._down(*args, **kwargs)
 
+
 class Daily(CompletableTaskMixin, ChecklistTaskMixin, HistoryTaskMixin, Task):
     task_type = 'daily'
+
     def populate_from_api_response(self, api_response):
         self.streak = api_response['streak']
         self.repeat = api_response['repeat']  # TODO Parse this
         super().populate_from_api_response(api_response)
+
 
 class Todo(CompletableTaskMixin, ChecklistTaskMixin, Task):
     task_type = 'todo'
@@ -502,10 +518,13 @@ class Todo(CompletableTaskMixin, ChecklistTaskMixin, Task):
                 api_response.get('dateCompleted'))
         super().populate_from_api_response(api_response)
 
+
 class Reward(Task):
     task_type = 'reward'
+
     def buy(self, *args, **kwargs):
         return self._up(*args, **kwargs)
+
 
 class HistoryStamp(object):
     def __init__(self, timestamp, value):
@@ -533,12 +552,13 @@ class HistoryStamp(object):
             datetime.datetime.fromtimestamp(api_response['date'] / 1000),
             api_response['value'])
 
+
 class Tag(UserPlusIDMixin):
     def __repr__(self):
         if self.populated:
             return '<{} id {!r} name {!r}>'.format(self.__class__.__name__,
-                                                    self.id_code,
-                                                    self.name)
+                                                   self.id_code,
+                                                   self.name)
         else:
             return super().__repr__()
 
@@ -553,7 +573,7 @@ class Tag(UserPlusIDMixin):
                 self.challenge = True
             else:
                 raise ValueError('Unexpected challenge value {!r}'
-                        .format(challenge))
+                                 .format(challenge))
         self.populated = True
 
     def fetch(self, force_update=False):
@@ -569,7 +589,7 @@ class Tag(UserPlusIDMixin):
                 break
         else:
             raise RuntimeError('Tag with ID {!r} not found'
-                    .format(self.id_code))
+                               .format(self.id_code))
         self.populated = True
 
     @classmethod
@@ -589,6 +609,7 @@ class Tag(UserPlusIDMixin):
         response = self.user.api_request('DELETE',
                                          'user/tags/{}'.format(self.id_code))
         user.populate_tags_from_api_response(response)
+
 
 class CheckItem(UserPlusIDMixin):
     def __init__(self, user, task, id_code):
@@ -624,14 +645,17 @@ class CheckItem(UserPlusIDMixin):
         self.completed = api_response['completed']
         self.populated = True
 
+
 class Group(UserPlusIDMixin):
     def send_chat(self, message):
         self.user.api_request('POST', 'groups/{}/chat'.format(self.id_code),
                               params={'message': message})
 
+
 class Party(Group):
     def __init__(self, user):
         super().__init__(user=user, id_code='party')
+
 
 class ChatMessage(UserPlusIDMixin):
     def __init__(self, user, group, id_code):
@@ -639,5 +663,6 @@ class ChatMessage(UserPlusIDMixin):
         supe().__init__(user=user, id_code=id_code)
 
     def delete(self):
-        self.user.api_request('DELETE',
+        self.user.api_request(
+                'DELETE',
                 'groups/{}/chat/{}'.format(self.group.id_code, self.id_code))
