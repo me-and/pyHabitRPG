@@ -61,7 +61,8 @@ def get_recurring_tag(user):
 if __name__ == '__main__':
     user = habitrpg.User.from_file()
     for filename in os.listdir(TASK_DIRECTORY):
-        if filename.startswith('.'):  # Skip hidden files like Vim swap files
+        if filename.startswith('.') or filename.endswith('~'):
+            # Skip things like Vim swap files.
             continue
         file_path = os.path.join(TASK_DIRECTORY, filename)
         with open(file_path) as task_file:
