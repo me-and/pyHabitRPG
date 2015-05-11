@@ -27,7 +27,9 @@ def delete_old_backups(directory, num_files_to_keep):
     file_list = [os.path.join(directory, f) for f in os.listdir(directory) if
                  os.path.isfile(os.path.join(directory, f)) and
                  not f.startswith('.')]
-    sorted_file_list = sorted(file_list, key=lambda x: os.stat(x).st_mtime)
+    sorted_file_list = sorted(file_list,
+                              key=lambda x: os.stat(x).st_mtime,
+                              reverse=True)
     for file_name in sorted_file_list[num_files_to_keep:]:
         os.unlink(file_name)
 
