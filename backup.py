@@ -2,6 +2,7 @@
 import datetime
 import os
 import subprocess
+import sys
 
 import yaml
 
@@ -9,8 +10,7 @@ import habitrpg
 
 BACKUP_DIRECTORY = os.path.expanduser(os.path.join('~', 'habitrpg_backup'))
 FILENAME_FORMAT = '{timestamp:%Y-%m-%d}'
-FILES_TO_KEEP = 10
-
+DEFAULT_FILES_TO_KEEP = 10
 
 def create_new_backup(user, backup_path, compress=True):
     user_data = user.api_request('GET', 'user', decode=False).json()
@@ -35,7 +35,11 @@ def delete_old_backups(directory, num_files_to_keep):
 
 
 if __name__ == '__main__':
+    try:
+        files_to_keep = int(sys.argv[1])
+    except IndexError:
+        files_to_keep = DEFAULT_FILES_TO_KEEP
     backup_filename = FILENAME_FORMAT.format(timestamp=datetime.datetime.now())
     backup_path = os.path.join(BACKUP_DIRECTORY, backup_filename)
     create_new_backup(habitrpg.User.from_file(), backup_path)
-    delete_old_backups(BACKUP_DIRECTORY, FILES_TO_KEEP)
+    delete_old_backups(BACKUP_DIRECTORY, files_to_keep)
