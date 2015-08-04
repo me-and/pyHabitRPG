@@ -16,21 +16,20 @@ if __name__ == '__main__':
     user.fetch_tasks()
 
     reduce_task = None
-    incomplete_todos = 0
+    num_todos = 0
     for task in user.todos:
         if not task.completed:
-            incomplete_todos += 1
+            num_todos += 1
         if task.title == TASK_NAME and not task.completed:
             reduce_task = task
 
     if sys.stdout.isatty():
-        print('Todos: {}'.format(incomplete_todos))
+        print('Todos: {}'.format(num_todos))
 
-    notes = '{:%A %I:%M %p}: {} tasks'.format(datetime.now(TZ),
-                                              incomplete_todos)
-    if incomplete_todos > MAX_TODOS and reduce_task is None:
+    notes = '{:%A %I:%M %p}: {} tasks'.format(datetime.now(TZ), num_todos)
+    if num_todos > MAX_TODOS and reduce_task is None:
         habitrpg.Todo.new(user, title=TASK_NAME, notes=notes)
-    elif incomplete_todos <= (CLEAR_THRESHOLD + 1) and reduce_task is not None:
+    elif num_todos <= (CLEAR_THRESHOLD + 1) and reduce_task is not None:
         reduce_task.complete()
     elif reduce_task is not None:
         reduce_task.update(notes=notes)
