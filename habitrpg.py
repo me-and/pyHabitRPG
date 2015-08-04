@@ -584,7 +584,7 @@ class Party(Group):
 class ChatMessage(UserPlusIDMixin):
     def __init__(self, user, group, id_code):
         self.group = group
-        supe().__init__(user=user, id_code=id_code)
+        super().__init__(user=user, id_code=id_code)
 
     def delete(self):
         self.user.api_request('DELETE',
