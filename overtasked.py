@@ -23,10 +23,10 @@ if __name__ == '__main__':
         if task.title == TASK_NAME and not task.completed:
             reduce_task = task
 
-    if sys.stdout.isatty():
-        print('Todos: {}'.format(num_todos))
-
     notes = '{:%A %I:%M %p}: {} tasks'.format(datetime.now(TZ), num_todos)
+    if sys.stdout.isatty():
+        print(notes)
+
     if num_todos > MAX_TODOS and reduce_task is None:
         habitrpg.Todo.new(user, title=TASK_NAME, notes=notes)
     elif num_todos <= (CLEAR_THRESHOLD + 1) and reduce_task is not None:
