@@ -478,4 +478,4 @@ class Tag(object):
     def delete(self):
         response = self.user.api_request('DELETE',
                                          'user/tags/{}'.format(self.id_code))
-        user.populate_tags_from_api_response(response)
+        self.user.populate_tags_from_api_response(response)
