@@ -149,6 +149,7 @@ class User(object):
         self.rewards = []
         self.tasks_populated = False
         self.tags = []
+        self.tag_ids = {}
         self.tags_populated = False
 
     def __eq__(self, other):
@@ -203,8 +204,37 @@ class User(object):
         self.populate_tags_from_api_response(response['tags'])
 
     def populate_tags_from_api_response(self, api_response):
-        self.tags = [Tag.create_from_api_response(self, tag_data) for
-                     tag_data in api_response]
+        # Before populating the tag list, spin through any tags we know about
+        # already and assume they've been deleted.  They'll be marked as not
+        # being deleted when we process them (unless we don't process them on
+        # the API response, which means they will, in fact, have been deleted.
+        #
+        # Use self.tag_ids.values() for this, because self.tags does only
+        # contain tags we believe were not deleted last time we checked.
+        updated_tags = set()
+        for tag in self.tag_ids.values():
+            if not tag.deleted:
+                tag.deleted = True
+                updated_tags.add(tag)
+
+        try:
+            self.tags = [Tag.create_from_api_response(self, tag_data) for
+                         tag_data in api_response]
+        except:
+            # Something went wrong, and since we changed some values earlier
+            # and now don't know whether they're in a good state, reset them.
+            for tag in updated_tags:
+                tag.populated = False
+            raise
+
+        # Now any tags that aren't populated in self.tag_ids must be ones that
+        # aren't current tags but are being referred to from somewhere, so
+        # record them as being deleted.
+        for tag in self.tag_ids.values():
+            if not tag.populated:
+                tag.deleted = True
+                tag.populated = True
+
         self.tags_populated = True
 
     def task_from_api_response(self, api_response):
@@ -239,7 +269,11 @@ class UserPlusIDMixin(object):
     def __init__(self, user, id_code):
         self.user = user
         self.id_code = id_code
-        self.populated = False
+        if not hasattr(self, 'populated'):
+            # Check whether we've already set `self.populated` as we sometimes
+            # call this method after a call to __new__ which returns an already
+            # existing object, which may already be populated.
+            self.populated = False
 
     def __eq__(self, other):
         try:
@@ -264,14 +298,15 @@ class UserPlusIDMixin(object):
 class Task(UserPlusIDMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.title = None
-        self.notes = None
-        self.date_created = None
-        self.value = None
-        self.priority = None
-        self.attribute = None
-        self.challenge = None
-        self.tags = []
+        if not self.populated:
+            self.title = None
+            self.notes = None
+            self.date_created = None
+            self.value = None
+            self.priority = None
+            self.attribute = None
+            self.challenge = None
+            self.tags = []
 
     def __repr__(self):
         if self.populated:
@@ -292,13 +327,21 @@ class Task(UserPlusIDMixin):
         # in the dictionary.
         self.title = api_response['text']
         self.notes = api_response['notes']
-        self.tags = api_response.get('tags')  # TODO Parse this
         self.date_created = parse_possible_timestamp(
                 api_response['dateCreated'])
         self.value = api_response['value']
         self.priority = api_response['priority']
         self.attribute = api_response['attribute']
         self.challenge = api_response.get('challenge')  # TODO Parse this
+
+        tags = api_response.get('tags', {})
+        self.tags = []
+        for tag_id in tags:
+            # tags[tag_id] will be True or False, where False indicates the tag
+            # was once set on this task, but isn't set now.
+            if tags[tag_id]:
+                self.tags.append(Tag(self.user, tag_id))
+
         self.populated = True
 
     @classmethod
@@ -572,11 +615,24 @@ class HistoryStamp(object):
 class Tag(UserPlusIDMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = None
-        self.challenge = None
+        if not self.populated:
+            self.name = None
+            self.challenge = None
+            self.deleted = None
+
+    def __new__(cls, user, id_code):
+        if id_code in user.tag_ids:
+            return user.tag_ids[id_code]
+        else:
+            tag = super().__new__(cls, user, id_code)
+            user.tag_ids[id_code] = tag
+            return tag
 
     def __repr__(self):
-        if self.populated:
+        if self.populated and self.deleted:
+            return '<{} id {!r} (deleted)>'.format(self.__class__.__name__,
+                                                   self.id_code)
+        elif self.populated:
             return '<{} id {!r} name {!r}>'.format(self.__class__.__name__,
                                                    self.id_code,
                                                    self.name)
@@ -595,23 +651,16 @@ class Tag(UserPlusIDMixin):
             else:
                 raise ValueError('Unexpected challenge value {!r}'
                                  .format(challenge))
+
+        # There was an API response, so this tag cannot have been deleted.
+        self.deleted = False
+
         self.populated = True
 
-    def fetch(self, force_update=False):
-        # There's no good way to just fetch this tag, so make sure `self.user`
-        # has the tag list and populate this instance's data based on that tag
-        # list.
-        if force_update or not self.user.tags_populated:
-            self.user.fetch()
-        for tag in self.user.tags:
-            if self.id_code == tag.id_code:
-                self.name = tag.name
-                self.challenge = tag.challenge
-                break
-        else:
-            raise RuntimeError('Tag with ID {!r} not found'
-                               .format(self.id_code))
-        self.populated = True
+    def fetch(self):
+        # There's no good way to just fetch this tag, so just fetch all the
+        # user data, which will include tag data.
+        self.user.fetch()
 
     @classmethod
     def new(cls, user, name=None):
