@@ -379,8 +379,24 @@ class Task(UserPlusIDMixin):
         if priority is not None:
             request['priority'] = priority
         if tags is not None:
+            # It's not possible to remove a tag from a task: once it has been
+            # added, it will be present forever.  Untagging the task is
+            # actually a case of marking the tag as False rather than true.
+            #
+            # However I don't like that interface: if we follow it then adding
+            # a tag (even at task creation, when there is no sensible concept
+            # of removing a tag) would require specifying the tag's presence,
+            # which should be implicit.  So let the user of this method specify
+            # the list of tags they want the task to have, and we'll work out
+            # what that means in terms of marking tags as present or absent.
             request['tags'] = {}
+            for tag in self.tags:
+                # Assume the tag is going to be deleted...
+                request['tags'][tag.id_code] = False
+
             for tag in tags:
+                # ...unless it's in the passed list, in which case mark it as
+                # present.
                 request['tags'][tag.id_code] = True
 
         response = self.user.api_request(
