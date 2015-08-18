@@ -143,7 +143,12 @@ class User(object):
         self.hrpg = hrpg
         self.user_id = user_id
         self.api_token = api_token
+        self.habits = []
+        self.dailies = []
+        self.todos = []
+        self.rewards = []
         self.tasks_populated = False
+        self.tags = []
         self.tags_populated = False
 
     def __eq__(self, other):
@@ -257,6 +262,17 @@ class UserPlusIDMixin(object):
 
 
 class Task(UserPlusIDMixin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.title = None
+        self.notes = None
+        self.date_created = None
+        self.value = None
+        self.priority = None
+        self.attribute = None
+        self.challenge = None
+        self.tags = []
+
     def __repr__(self):
         if self.populated:
             return '<{} id {!r} title {!r}>'.format(self.__class__.__name__,
@@ -554,6 +570,11 @@ class HistoryStamp(object):
 
 
 class Tag(UserPlusIDMixin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = None
+        self.challenge = None
+
     def __repr__(self):
         if self.populated:
             return '<{} id {!r} name {!r}>'.format(self.__class__.__name__,
