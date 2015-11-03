@@ -159,10 +159,16 @@ if __name__ == '__main__':
                     task_data['current'] = None
                     min_seconds = task_data['repeat']['on completion']['min'] * task_data['unit multiplier']
                     max_seconds = task_data['repeat']['on completion']['max'] * task_data['unit multiplier']
-                    task_data['next'] = (task.date_completed +
+                    try:
+                        next_time = (task.date_completed +
                             datetime.timedelta(seconds=randint(min_seconds,
                                                                max_seconds)))
-
+                    except ValueError:
+                        # Recurring problem with max and min the wrong way
+                        # around; lets make it a bit easier to diagnose.
+                        print(filename)
+                        raise
+                    task_data['next'] = next_time
         if (task_data['next'] is not None and
                 datetime.datetime.now(TZ) >= task_data['next']):
             recurring_tag = get_recurring_tag(user)
