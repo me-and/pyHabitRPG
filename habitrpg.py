@@ -640,7 +640,7 @@ class Tag(UserPlusIDMixin):
         if id_code in user.tag_ids:
             return user.tag_ids[id_code]
         else:
-            tag = super().__new__(cls, user, id_code)
+            tag = super().__new__(cls)
             user.tag_ids[id_code] = tag
             return tag
 
